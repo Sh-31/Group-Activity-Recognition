@@ -1,1 +1,4 @@
 kaggle
+numpy 
+pandas
+opencv-python-headless
