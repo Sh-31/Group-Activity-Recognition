@@ -4,10 +4,7 @@ import pickle
 from typing import List
 from boxinfo import BoxInfo
 
-
-
 dataset_root = '/teamspace/studios/this_studio/Group-Activity-Recognition/data'
-
 
 
 def load_tracking_annot(path):
@@ -36,24 +33,37 @@ def load_tracking_annot(path):
         return frame_boxes_dct
 
 
-def vis_clip(annot_path, video_dir):
+
+
+def vis_clip(annot_path, video_dir, output_path='output.mp4', fps=10):
     frame_boxes_dct = load_tracking_annot(annot_path)
     font = cv2.FONT_HERSHEY_SIMPLEX
+    video_writer = None
 
     for frame_id, boxes_info in frame_boxes_dct.items():
         img_path = os.path.join(video_dir, f'{frame_id}.jpg')
         image = cv2.imread(img_path)
 
+        # Initialize video writer with the same resolution as the images
+        if video_writer is None:
+            height, width = image.shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 format
+            video_writer = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+        # Draw boxes and labels on the image
         for box_info in boxes_info:
             x1, y1, x2, y2 = box_info.box
-
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(image, box_info.category, (x1, y1 - 10), font, 0.5, (0, 255, 0), 2)
 
-        cv2.imshow('Image', image)
-        cv2.waitKey(180)
-    cv2.destroyAllWindows()
+        # Write the processed frame to the video
+        video_writer.write(image)
 
+    # Release the video writer after processing all frames
+    if video_writer is not None:
+        video_writer.release()
+
+    print(f"Video saved as {output_path}")
 
 
 def load_video_annot(video_annot):
@@ -138,4 +148,6 @@ if __name__ == '__main__':
     annot_file = f'{dataset_root}/volleyball_tracking_annotation/4/24745/24745.txt'
     clip_dir_path = os.path.dirname(annot_file).replace('volleyball_tracking_annotation', 'videos')
 
-    vis_clip(annot_file, clip_dir_path)
+    # vis_clip(annot_file, clip_dir_path, '/teamspace/studios/this_studio/Group-Activity-Recognition/vid.mp4')
+    # create_pkl_version()
+    test_pkl_version()
