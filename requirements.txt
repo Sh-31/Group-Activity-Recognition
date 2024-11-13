@@ -2,3 +2,5 @@ kaggle
 numpy 
 pandas
 opencv-python-headless
+torch
+torchvision
