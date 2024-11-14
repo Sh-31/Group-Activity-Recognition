@@ -6,3 +6,5 @@ torch
 torchvision
 torchinfo
 tensorboard
+seaborn
+scikit-learn

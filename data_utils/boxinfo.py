@@ -1,3 +1,5 @@
+import sys
+
 class BoxInfo:
     def __init__(self, line):
         words = line.split()
@@ -12,3 +14,5 @@ class BoxInfo:
         self.lost = lost
         self.grouping = grouping
         self.generated = generated
+
+sys.modules['boxinfo'] = sys.modules[__name__]        
