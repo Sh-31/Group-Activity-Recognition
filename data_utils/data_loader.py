@@ -21,7 +21,7 @@ import cv2
 import pickle
 import torch
 from typing import List
-from boxinfo import BoxInfo
+from .boxinfo import BoxInfo
 from torch.utils.data import Dataset
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
@@ -47,8 +47,8 @@ def validation_of_bbox(clip_id, clip_dir, frame_i, box_i, frame_box, cropped_bbo
     plt.axis('off')  
     plt.show()
 
-class People_Activity(Dataset):
-    def __init__ (self, videos_path=videos_path, annot_path=annot_path, seq=False, split=None, labels=None, transform=None):
+class People_Activity_DataSet(Dataset):
+    def __init__ (self, videos_path=videos_path, annot_path=annot_path, seq=False, split:list=[], labels:dict={}, transform=None):
         '''
         Params:
 
@@ -125,8 +125,8 @@ class People_Activity(Dataset):
         return self.data[idx]
 
 
-class Group_Activity(Dataset):
-    def __init__ (self, videos_path=videos_path, annot_path=annot_path, seq=False, crops=False, split=None , labels=None, transform=None):
+class Group_Activity_DataSet(Dataset):
+    def __init__ (self, videos_path=videos_path, annot_path=annot_path, seq=False, crops=False, split:list=[] , labels:dict={}, transform=None):
 
         with open(annot_path, 'rb') as file:
             self.videos_annot = pickle.load(file)

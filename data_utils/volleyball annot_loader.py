@@ -33,8 +33,6 @@ def load_tracking_annot(path):
         return frame_boxes_dct
 
 
-
-
 def vis_clip(annot_path, video_dir, output_path='output.mp4', fps=10):
     frame_boxes_dct = load_tracking_annot(annot_path)
     font = cv2.FONT_HERSHEY_SIMPLEX

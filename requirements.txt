@@ -4,3 +4,5 @@ pandas
 opencv-python-headless
 torch
 torchvision
+torchinfo
+tensorboard
