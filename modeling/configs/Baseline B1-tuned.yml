@@ -2,13 +2,13 @@
 
 model:
   name: "ResNet50"
-  num_classes: 8
+  num_classes: 8 # group_activity_clases = ["r_set", "r_spike" , "r-pass", "r_winpoint", "l_winpoint", "l-pass", "l-spike", "l_set"]
 
 training:
   batch_size: 64
   learning_rate: 0.001
   epochs: 50
-  optimizer: "Adam"
+  optimizer: "AdamW"
   weight_decay: 0.0001
 
 data:
@@ -30,4 +30,4 @@ experiment:
   version: 1
   seed: 31
   output_dir: "outputs"
-  description: "Single-frame ResNet50 baseline for group activity recognition"
+  description: "Single-frame ResNet50 baseline 1 for group activity recognition"

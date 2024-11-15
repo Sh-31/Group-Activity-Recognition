@@ -13,8 +13,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from model import Group_Activity_Classifer
 
-project_root = "/teamspace/studios/this_studio/Group-Activity-Recognition"
-sys.path.append(os.path.abspath(project_root))
+ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition"
+sys.path.append(os.path.abspath(ROOT))
 
 from data_utils import Group_Activity_DataSet, group_activity_labels
 from eval_utils import get_f1_score , plot_confusion_matrix
@@ -37,11 +37,12 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
     
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         inputs, targets = inputs.to(device), targets.to(device)
-        
+        # inputs.shape : torch.Size([64, 3, 224, 224])
+        # targets.shape : torch.Size([64, 8])
         optimizer.zero_grad()
         
         with autocast(dtype=torch.float16):
-            outputs = model(inputs)
+            outputs = model(inputs) # outputs.shape : torch.Size([64, 8])
             loss = criterion(outputs, targets)
         
         scaler.scale(loss).backward()
@@ -50,8 +51,8 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         
         total_loss += loss.item()
         
-        _, predicted = outputs.max(1)
-        _, target_class = targets.max(1)
+        predicted = outputs.argmax(1) 
+        target_class = targets.argmax(1)
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
@@ -110,7 +111,7 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
     writer.add_scalar('Validation/Loss', avg_loss, epoch)
     writer.add_scalar('Validation/Accuracy', accuracy, epoch)
     
-    logger.info(f"Epoch {epoch} - Validation Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%, F1 Score: {f1_score:.4f}")
+    logger.info(f"Epoch {epoch} | Valid Loss: {avg_loss:.4f} | Accuracy: {accuracy:.2f}% | F1 Score: {f1_score:.4f}")
     
     return avg_loss, accuracy
 
@@ -120,18 +121,14 @@ def train_model(config_path):
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     exp_dir = os.path.join(
-        f"{project_root}/modeling/baseline 1/{config.experiment['output_dir']}",
-        f"{config.experiment['name']}_{timestamp}"
+        f"{ROOT}/modeling/baseline 1/{config.experiment['output_dir']}",
+        f"{config.experiment['name']}_V{config.experiment['version']}_{timestamp}"
     )
     os.makedirs(exp_dir, exist_ok=True)
     
     logger = setup_logging(exp_dir)
-    
-    logger.info(f"Starting experiment: {config.experiment['name']}")
-    logger.info(f"Config path: {config_path}")
-    logger.info("Configuration:")
-    logger.info(yaml.dump(config, default_flow_style=False))
-    
+    logger.info(f"Starting experiment: {config.experiment['name']}_V{config.experiment['version']}")
+
     writer = SummaryWriter(log_dir=os.path.join(exp_dir, 'tensorboard'))
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -143,7 +140,6 @@ def train_model(config_path):
     train_transform = T.Compose([
         T.ToPILImage(),
         T.Resize((224, 224)),
-        T.RandomHorizontalFlip() if config.data['augmentation']['random_flip'] else T.Lambda(lambda x: x),
         T.ToTensor(),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
@@ -151,23 +147,22 @@ def train_model(config_path):
     val_transform = T.Compose([
         T.ToPILImage(),
         T.Resize((224, 224)),
-        T.CenterCrop(224),
         T.ToTensor(),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     
     train_dataset = Group_Activity_DataSet(
-        videos_path=f"{project_root}/{config.data['videos_path']}",
-        annot_path=f"{project_root}/{config.data['annot_path']}",
-        split=[1, 3, 6], #  [1, 3, 6] - config.data['video_splits']['train']
+        videos_path=f"{ROOT}/{config.data['videos_path']}",
+        annot_path=f"{ROOT}/{config.data['annot_path']}",
+        split=[1, ], #  [1, 3, 6] - config.data['video_splits']['train']
         labels=group_activity_labels, #
         transform=train_transform
     )
     
     val_dataset = Group_Activity_DataSet(
-        videos_path=f"{project_root}/{config.data['videos_path']}",
-        annot_path=f"{project_root}/{config.data['annot_path']}",
-        split=[0, 2, 8], # [0, 2, 8] - config.data['video_splits']['validation']
+        videos_path=f"{ROOT}/{config.data['videos_path']}",
+        annot_path=f"{ROOT}/{config.data['annot_path']}",
+        split=[0, ], # [0, 2, 8] - config.data['video_splits']['validation']
         labels=group_activity_labels,
         transform=val_transform
     )
@@ -186,7 +181,7 @@ def train_model(config_path):
     val_loader = DataLoader(
         val_dataset,
         batch_size=config.training['batch_size'],
-        shuffle=False,
+        shuffle=True,
         num_workers=4,
         pin_memory=True
     )
@@ -226,10 +221,6 @@ def train_model(config_path):
         )
         
         val_loss, val_acc = validate_model(model, val_loader, criterion, device, epoch, writer, logger, config.model['num_classes'])
-        
-        logger.info(f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%')
-        logger.info(f'Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%')
-        
         scheduler.step(val_loss)
         
         current_lr = optimizer.param_groups[0]['lr']
@@ -251,7 +242,6 @@ def train_model(config_path):
     logger.info(f"Training completed. Final model saved to: {final_model_path}")
 
 if __name__ == "__main__":
-    config_path = os.path.join(project_root, "modeling/configs/Baseline B1-tuned.yml")
-    print(config_path)
+    config_path = os.path.join(ROOT, "modeling/configs/Baseline B1-tuned.yml")
     train_model(config_path)
     # tensorboard --logdir="/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 1/outputs/Baseline_B1_tuned_20241114_095045/tensorboard"
