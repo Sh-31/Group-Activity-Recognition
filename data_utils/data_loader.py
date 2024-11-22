@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import albumentations as A
 from typing import List
-from boxinfo import BoxInfo
+from .boxinfo import BoxInfo
 from torch.utils.data import Dataset
 from multiprocessing import Pool, cpu_count
 from concurrent.futures import ThreadPoolExecutor
