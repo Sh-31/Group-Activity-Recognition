@@ -1,0 +1,7 @@
+.kaggle
+data
+*.pkl
+modeling/prototyping.ipynb
+__pycache__
+*.pth
+modeling
