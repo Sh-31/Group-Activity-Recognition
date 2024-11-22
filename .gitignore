@@ -4,4 +4,4 @@ data
 modeling/prototyping.ipynb
 __pycache__
 *.pth
-modeling
+modeling/baseline 3
