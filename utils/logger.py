@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 from datetime import datetime
-from IPython import get_ipython
 import warnings
 
 class Logger:
@@ -44,10 +43,10 @@ class Logger:
            
             self.logger.info(message)
      
-            self.log_file_handle.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [INFO] {message}\n")
-            self.log_file_handle.flush()
+            # self.log_file_handle.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [INFO] {message}\n")
+            # self.log_file_handle.flush()
             
-            sys.stdout.flush()
+            # sys.stdout.flush()
             
         except Exception as e:
             warnings.warn(f"Logging failed: {str(e)}. Attempting direct print.")

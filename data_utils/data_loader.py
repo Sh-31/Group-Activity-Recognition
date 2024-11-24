@@ -67,7 +67,7 @@ def get_frame_paths(clip_id, clip_dir, frame_ids, videos_path):
             for frame_id in frame_ids]
 
 def process_clip_people_activity(args):
-    clip_id, videos_path, videos_annot, seq, labels, transform, num_threads = args
+    clip_id, videos_path, videos_annot, seq, labels, only_tar, transform, num_threads = args
     data = []
     image_loader = ImageLoader(num_threads=num_threads)
     
@@ -84,6 +84,9 @@ def process_clip_people_activity(args):
             frame_path = f"{videos_path}/{str(clip_id)}/{str(clip_dir)}/{frame_id}.jpg"
             frame = image_loader.get_image(frame_path)
             
+            # Use only target frames 
+            if only_tar and str(frame_id) != str(clip_dir): continue
+                    
             if frame is None:
                 continue
                 
@@ -227,14 +230,14 @@ def numpy_to_torch(data_item):
 
 class Person_Activity_DataSet(Dataset):
     def __init__(self, videos_path=videos_path, annot_path=annot_path, seq=False, split:list=[], 
-                 labels:dict={}, transform=None, num_workers=None, num_threads=4):
+                 labels:dict={}, only_tar=False, transform=None, num_workers=None, num_threads=4):
         with open(annot_path, 'rb') as file:
             self.videos_annot = pickle.load(file)
 
         if num_workers is None:
             num_workers = min(cpu_count(), len(split))
 
-        process_args = [(clip_id, videos_path, self.videos_annot, seq, labels, transform, num_threads) 
+        process_args = [(clip_id, videos_path, self.videos_annot, seq, labels, only_tar, transform, num_threads) 
                        for clip_id in split]
 
         with Pool(num_workers) as pool:
