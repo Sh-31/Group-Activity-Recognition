@@ -5,20 +5,25 @@ import torch
 import random
 import numpy as np
 import torch.nn as nn
+import albumentations as A
 import torch.optim as optim
-from torchvision.transforms import v2
+import torch.multiprocessing as mp
 from datetime import datetime
+from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from model import Group_Activity_Classifer
 
-ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition"
-sys.path.append(os.path.abspath(ROOT))
+ROOT = "/teamspace/studios/this_studio"
+PROJECT_ROOT= "/teamspace/studios/this_studio/Group-Activity-Recognition"
+CONFIG_FILE_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B1-tuned.yml"
+
+sys.path.append(os.path.abspath(PROJECT_ROOT))
 
 from data_utils import Group_Activity_DataSet, group_activity_labels
 from eval_utils import get_f1_score , plot_confusion_matrix
-from utils import load_config, setup_logging, save_checkpoint
+from helper_utils import load_config, setup_logging, save_checkpoint
 
 def set_seed(seed):
     random.seed(seed)
@@ -66,6 +71,8 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
     
     epoch_loss = total_loss / len(train_loader)
     epoch_acc = 100. * correct / total
+    
+    logger.info(f"Epoch {epoch} - Train Loss: {epoch_loss:.4f} - Accuracy: {epoch_acc:.2f}%")
     
     writer.add_scalar('Training/EpochLoss', epoch_loss, epoch)
     writer.add_scalar('Training/EpochAccuracy', epoch_acc, epoch)
@@ -121,7 +128,7 @@ def train_model(config_path):
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     exp_dir = os.path.join(
-        f"{ROOT}/modeling/baseline 1/{config.experiment['output_dir']}",
+        f"{PROJECT_ROOT}/modeling/baseline 1/{config.experiment['output_dir']}",
         f"{config.experiment['name']}_V{config.experiment['version']}_{timestamp}"
     )
     os.makedirs(exp_dir, exist_ok=True)
@@ -137,37 +144,48 @@ def train_model(config_path):
     set_seed(config.experiment['seed'])
     logger.info(f"Set random seed: {config.experiment['seed']}")
     
-    train_transform = v2.Compose([
-        v2.ToPILImage(),
-        v2.Resize((224, 224)),
-        v2.ToImage(), 
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    train_transforms = A.Compose([
+        A.Resize(224, 224),
+        A.OneOf([
+            A.GaussianBlur(blur_limit=(3, 7)),
+            A.ColorJitter(brightness=0.2),
+            A.RandomBrightnessContrast(),
+            A.GaussNoise()
+        ], p=0.5),
+        A.OneOf([
+            A.HorizontalFlip(),
+            A.VerticalFlip(),
+        ], p=0.05),
+        A.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        ),
+        ToTensorV2()
     ])
     
-    val_transform = v2.Compose([
-        v2.ToPILImage(),
-        v2.Resize((224, 224)),
-        v2.ToImage(), 
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    val_transforms = A.Compose([
+        A.Resize(224, 224),
+        A.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        ),
+        ToTensorV2()
     ])
-    
     
     train_dataset = Group_Activity_DataSet(
-        videos_path=f"{ROOT}/{config.data['videos_path']}",
-        annot_path=f"{ROOT}/{config.data['annot_path']}",
+        videos_path=f"{PROJECT_ROOT}/{config.data['videos_path']}",
+        annot_path=f"{PROJECT_ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['train'],
         labels=group_activity_labels, 
-        transform=train_transform
+        transform=train_transforms
     )
     
     val_dataset = Group_Activity_DataSet(
-        videos_path=f"{ROOT}/{config.data['videos_path']}",
-        annot_path=f"{ROOT}/{config.data['annot_path']}",
+        videos_path=f"{PROJECT_ROOT}/{config.data['videos_path']}",
+        annot_path=f"{PROJECT_ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['validation'],
         labels=group_activity_labels,
-        transform=val_transform
+        transform=val_transforms
     )
     
     logger.info(f"Training dataset size: {len(train_dataset)}")
@@ -191,7 +209,6 @@ def train_model(config_path):
     
     model = Group_Activity_Classifer(num_classes=config.model['num_classes'])
     model = model.to(device)
-    logger.info(f"Model initialized: {config.model['name']}")
     
     optimizer = optim.AdamW(
         model.parameters(),
@@ -245,6 +262,6 @@ def train_model(config_path):
     logger.info(f"Training completed. Final model saved to: {final_model_path}")
 
 if __name__ == "__main__":
-    config_path = os.path.join(ROOT, "modeling/configs/Baseline B1-tuned.yml")
-    train_model(config_path)
+    mp.set_start_method('spawn', force=True)
+    train_model(CONFIG_FILE_PATH)
     # tensorboard --logdir="/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 1/outputs/Baseline_B1_tuned_V1_20241117_044805/tensorboard"

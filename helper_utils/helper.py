@@ -71,6 +71,9 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
         checkpoint = torch.load(checkpoint_path, map_location=device)
     
     model.load_state_dict(checkpoint['model_state_dict'])
+
+    if optimizer == None: return model
+       
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     
     # Move optimizer states to correct device
@@ -85,7 +88,3 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
     
     return model, optimizer, config, exp_dir, start_epoch
         
-  
-
-
-  

@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import albumentations as A
 from typing import List, Tuple
-from boxinfo import BoxInfo
+from data_utils.boxinfo import BoxInfo
 from torch.utils.data import Dataset
 from pathlib import Path
 
@@ -166,7 +166,6 @@ class Group_Activity_DataSet(Dataset):
                  crops: bool = False, split: list = [], only_tar: bool= False,
                  labels: dict = {}, transform=None):
         """
-
         Args:
             videos_path: Path to video frames
             annot_path: Path to annotations file

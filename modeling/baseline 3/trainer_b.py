@@ -25,12 +25,13 @@ from model import Group_Activity_ClassiferNN, Person_Activity_Classifer
 ROOT = "/teamspace/studios/this_studio"
 PROJECT_ROOT= "/teamspace/studios/this_studio/Group-Activity-Recognition"
 CONFIG_FILE_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B3_step_b.yml"
+PERSON_ACTIVITY_CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20241127_184841/checkpoint_epoch_0.pkl"
 
 sys.path.append(os.path.abspath(PROJECT_ROOT))
 
 from data_utils import Group_Activity_DataSet, group_activity_labels
 from eval_utils import get_f1_score, plot_confusion_matrix
-from utils import load_config, setup_logging, load_checkpoint, save_checkpoint
+from helper_utils import load_config, setup_logging, load_checkpoint, save_checkpoint
 
 def set_seed(seed):
     random.seed(seed)
@@ -67,7 +68,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 10 == 0:
+        if batch_idx % 1000 == 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -125,16 +126,15 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
     
     return avg_loss, accuracy
 
-def train_model(config_path, checkpoint_path=None):
+def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=None):
     config = load_config(config_path)
 
-    Person_activity_checkpoint_path = '/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20241124_142617/checkpoint_epoch_2.pkl'
     person_activity_cls = Person_Activity_Classifer(num_classes=config.model['num_classes']['person_activity'])
    
-    with open(Person_activity_checkpoint_path, 'rb') as f:
-         Person_activity_checkpoint = pickle.load(f)
+    with open(person_activity_checkpoint_path, 'rb') as f:
+         person_activity_checkpoint = pickle.load(f)
     
-    person_activity_cls.load_state_dict(Person_activity_checkpoint['model_state_dict'])
+    person_activity_cls.load_state_dict(person_activity_checkpoint['model_state_dict'])
     
     model = Group_Activity_ClassiferNN(person_feature_extraction=person_activity_cls, num_classes=config.model['num_classes']['group_activity'])
 
@@ -184,11 +184,11 @@ def train_model(config_path, checkpoint_path=None):
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
             A.GaussNoise()
-        ], p=0.1),
+        ], p=0.5),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
-        ], p=0.1),
+        ], p=0.05),
         A.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225]
@@ -284,4 +284,5 @@ def train_model(config_path, checkpoint_path=None):
     logger.info(f"Training completed.")
 
 if __name__ == "__main__":
-    train_model(CONFIG_FILE_PATH)
+    RESUME_CHECK_POINT  = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_B_V1_20241127_192620/checkpoint_epoch_5.pkl"
+    train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH, RESUME_CHECK_POINT)

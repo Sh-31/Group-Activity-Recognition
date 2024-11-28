@@ -1,0 +1,73 @@
+2024-11-27 03:39:34,365 [INFO] Starting experiment: Baseline_B1_tuned_V1
+2024-11-27 03:39:34,389 [INFO] Using device: cuda
+2024-11-27 03:39:34,390 [INFO] Set random seed: 31
+2024-11-27 03:39:41,174 [INFO] Training dataset size: 19368
+2024-11-27 03:39:41,175 [INFO] Validation dataset size: 12069
+2024-11-27 03:39:41,903 [INFO] Configuration saved to: /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 1/outputs/Baseline_B1_tuned_V1_20241127_033934/config.yml
+2024-11-27 03:39:41,903 [INFO] Starting training...
+2024-11-27 03:39:41,903 [INFO] 
+Epoch 1/5
+2024-11-27 03:40:07,039 [INFO] Epoch: 0 | Batch: 0/76 | Loss: 2.0686 | Acc: 13.67%
+2024-11-27 03:40:16,271 [INFO] Epoch: 0 | Batch: 10/76 | Loss: 1.9946 | Acc: 19.11%
+2024-11-27 03:40:25,714 [INFO] Epoch: 0 | Batch: 20/76 | Loss: 1.9294 | Acc: 21.56%
+2024-11-27 03:40:35,087 [INFO] Epoch: 0 | Batch: 30/76 | Loss: 1.8458 | Acc: 24.41%
+2024-11-27 03:40:44,384 [INFO] Epoch: 0 | Batch: 40/76 | Loss: 1.6757 | Acc: 28.11%
+2024-11-27 03:40:54,097 [INFO] Epoch: 0 | Batch: 50/76 | Loss: 1.4382 | Acc: 31.80%
+2024-11-27 03:41:03,617 [INFO] Epoch: 0 | Batch: 60/76 | Loss: 1.2057 | Acc: 35.41%
+2024-11-27 03:41:12,748 [INFO] Epoch: 0 | Batch: 70/76 | Loss: 0.9953 | Acc: 39.21%
+2024-11-27 03:41:18,079 [INFO] Epoch 0 - Train Loss: 1.6147 - Accuracy: 40.96%
+2024-11-27 03:42:21,639 [INFO] Epoch 0 | Valid Loss: 1.2432 | Accuracy: 54.30% | F1 Score: 0.5275
+2024-11-27 03:42:21,658 [INFO] Current learning rate: 0.0001
+2024-11-27 03:42:22,283 [INFO] 
+Epoch 2/5
+2024-11-27 03:42:47,861 [INFO] Epoch: 1 | Batch: 0/76 | Loss: 0.9144 | Acc: 69.92%
+2024-11-27 03:42:57,238 [INFO] Epoch: 1 | Batch: 10/76 | Loss: 0.7122 | Acc: 73.12%
+2024-11-27 03:43:08,044 [INFO] Epoch: 1 | Batch: 20/76 | Loss: 0.6982 | Acc: 75.48%
+2024-11-27 03:43:17,296 [INFO] Epoch: 1 | Batch: 30/76 | Loss: 0.5079 | Acc: 77.29%
+2024-11-27 03:43:27,297 [INFO] Epoch: 1 | Batch: 40/76 | Loss: 0.4058 | Acc: 78.78%
+2024-11-27 03:43:36,732 [INFO] Epoch: 1 | Batch: 50/76 | Loss: 0.4326 | Acc: 79.89%
+2024-11-27 03:43:47,069 [INFO] Epoch: 1 | Batch: 60/76 | Loss: 0.3422 | Acc: 81.21%
+2024-11-27 03:43:57,386 [INFO] Epoch: 1 | Batch: 70/76 | Loss: 0.2883 | Acc: 82.30%
+2024-11-27 03:44:03,798 [INFO] Epoch 1 - Train Loss: 0.5120 - Accuracy: 82.83%
+2024-11-27 03:45:07,070 [INFO] Epoch 1 | Valid Loss: 1.2532 | Accuracy: 60.81% | F1 Score: 0.6087
+2024-11-27 03:45:07,086 [INFO] Current learning rate: 0.0001
+2024-11-27 03:45:07,695 [INFO] 
+Epoch 3/5
+2024-11-27 03:45:32,733 [INFO] Epoch: 2 | Batch: 0/76 | Loss: 0.2558 | Acc: 92.19%
+2024-11-27 03:45:42,054 [INFO] Epoch: 2 | Batch: 10/76 | Loss: 0.2044 | Acc: 92.86%
+2024-11-27 03:45:52,996 [INFO] Epoch: 2 | Batch: 20/76 | Loss: 0.1581 | Acc: 93.01%
+2024-11-27 03:46:02,084 [INFO] Epoch: 2 | Batch: 30/76 | Loss: 0.2335 | Acc: 93.37%
+2024-11-27 03:46:11,492 [INFO] Epoch: 2 | Batch: 40/76 | Loss: 0.1788 | Acc: 93.62%
+2024-11-27 03:46:20,836 [INFO] Epoch: 2 | Batch: 50/76 | Loss: 0.1314 | Acc: 93.88%
+2024-11-27 03:46:31,544 [INFO] Epoch: 2 | Batch: 60/76 | Loss: 0.1487 | Acc: 94.13%
+2024-11-27 03:46:40,984 [INFO] Epoch: 2 | Batch: 70/76 | Loss: 0.1715 | Acc: 94.25%
+2024-11-27 03:46:46,701 [INFO] Epoch 2 - Train Loss: 0.1796 - Accuracy: 94.36%
+2024-11-27 03:47:50,316 [INFO] Epoch 2 | Valid Loss: 1.4126 | Accuracy: 61.88% | F1 Score: 0.6142
+2024-11-27 03:47:50,328 [INFO] Current learning rate: 0.0001
+2024-11-27 03:47:50,958 [INFO] 
+Epoch 4/5
+2024-11-27 03:48:16,402 [INFO] Epoch: 3 | Batch: 0/76 | Loss: 0.1511 | Acc: 93.75%
+2024-11-27 03:48:25,760 [INFO] Epoch: 3 | Batch: 10/76 | Loss: 0.1300 | Acc: 95.49%
+2024-11-27 03:48:36,666 [INFO] Epoch: 3 | Batch: 20/76 | Loss: 0.1718 | Acc: 95.93%
+2024-11-27 03:48:46,026 [INFO] Epoch: 3 | Batch: 30/76 | Loss: 0.1229 | Acc: 96.18%
+2024-11-27 03:48:55,626 [INFO] Epoch: 3 | Batch: 40/76 | Loss: 0.0456 | Acc: 96.37%
+2024-11-27 03:49:05,431 [INFO] Epoch: 3 | Batch: 50/76 | Loss: 0.0898 | Acc: 96.45%
+2024-11-27 03:49:16,529 [INFO] Epoch: 3 | Batch: 60/76 | Loss: 0.0936 | Acc: 96.54%
+2024-11-27 03:49:25,790 [INFO] Epoch: 3 | Batch: 70/76 | Loss: 0.0877 | Acc: 96.63%
+2024-11-27 03:49:31,608 [INFO] Epoch 3 - Train Loss: 0.1052 - Accuracy: 96.66%
+2024-11-27 03:50:34,882 [INFO] Epoch 3 | Valid Loss: 1.5131 | Accuracy: 61.84% | F1 Score: 0.6210
+2024-11-27 03:50:34,894 [INFO] Current learning rate: 0.0001
+2024-11-27 03:50:35,518 [INFO] 
+Epoch 5/5
+2024-11-27 03:51:01,875 [INFO] Epoch: 4 | Batch: 0/76 | Loss: 0.0454 | Acc: 98.83%
+2024-11-27 03:51:11,334 [INFO] Epoch: 4 | Batch: 10/76 | Loss: 0.1250 | Acc: 97.27%
+2024-11-27 03:51:22,098 [INFO] Epoch: 4 | Batch: 20/76 | Loss: 0.0993 | Acc: 97.27%
+2024-11-27 03:51:31,892 [INFO] Epoch: 4 | Batch: 30/76 | Loss: 0.0773 | Acc: 97.37%
+2024-11-27 03:51:42,356 [INFO] Epoch: 4 | Batch: 40/76 | Loss: 0.0679 | Acc: 97.28%
+2024-11-27 03:51:51,941 [INFO] Epoch: 4 | Batch: 50/76 | Loss: 0.1411 | Acc: 97.33%
+2024-11-27 03:52:02,664 [INFO] Epoch: 4 | Batch: 60/76 | Loss: 0.0726 | Acc: 97.21%
+2024-11-27 03:52:12,190 [INFO] Epoch: 4 | Batch: 70/76 | Loss: 0.1222 | Acc: 97.23%
+2024-11-27 03:52:18,171 [INFO] Epoch 4 - Train Loss: 0.0879 - Accuracy: 97.23%
+2024-11-27 03:53:21,468 [INFO] Epoch 4 | Valid Loss: 1.5918 | Accuracy: 61.45% | F1 Score: 0.6178
+2024-11-27 03:53:21,484 [INFO] Current learning rate: 0.0001
+2024-11-27 03:53:22,531 [INFO] Training completed. Final model saved to: /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 1/outputs/Baseline_B1_tuned_V1_20241127_033934/final_model.pth

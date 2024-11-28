@@ -10,6 +10,7 @@ import numpy as np
 import torch.nn as nn
 import albumentations as A
 import torch.optim as optim
+import torch.multiprocessing as mp
 from datetime import datetime
 from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
@@ -25,7 +26,7 @@ sys.path.append(os.path.abspath(PROJECT_ROOT))
 
 from data_utils import Person_Activity_DataSet, person_activity_labels
 from eval_utils import get_f1_score, plot_confusion_matrix
-from utils import load_config, setup_logging, load_checkpoint, save_checkpoint
+from helper_utils import load_config, setup_logging, load_checkpoint, save_checkpoint
 
 def set_seed(seed):
     random.seed(seed)
@@ -62,7 +63,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 10 == 0:
+        if batch_idx % 50 == 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -170,11 +171,11 @@ def train_model(config_path, checkpoint_path=None):
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
             A.GaussNoise()
-        ], p=0.1),
+        ], p=0.5),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
-        ], p=0.1),
+        ], p=0.05),
         A.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225]
@@ -198,7 +199,7 @@ def train_model(config_path, checkpoint_path=None):
         labels=person_activity_labels,
         transform=train_transforms,
         seq=False,
-        only_tar=True 
+        only_tar=False 
     )
     
     val_dataset = Person_Activity_DataSet(
@@ -208,7 +209,7 @@ def train_model(config_path, checkpoint_path=None):
         labels=person_activity_labels,
         transform=val_transforms,
         seq=False,
-        only_tar=True
+        only_tar=False
     )
     
         
@@ -220,12 +221,16 @@ def train_model(config_path, checkpoint_path=None):
         train_dataset,
         batch_size=config.training['batch_size'],
         shuffle=True,
+        pin_memory=True,
+        num_workers=4
     )
     
     val_loader = DataLoader(
         val_dataset,
         batch_size=config.training['batch_size'],
         shuffle=True,
+        pin_memory=True,
+        num_workers=2
     )
     
     criterion = nn.CrossEntropyLoss()
@@ -272,4 +277,5 @@ def train_model(config_path, checkpoint_path=None):
     logger.info(f"Training completed.")
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn', force=True)
     train_model(CONFIG_FILE_PATH)

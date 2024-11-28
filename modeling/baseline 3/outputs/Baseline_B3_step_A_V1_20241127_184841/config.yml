@@ -1,4 +1,4 @@
-!!python/object:utils.helper.Config
+!!python/object:helper_utils.helper.Config
 data:
   annot_path: data/annot_all.pkl
   data_dir: data
@@ -82,8 +82,8 @@ model:
   - Standing
   num_classes: 9
 training:
-  batch_size: 32
-  epochs: 10
+  batch_size: 128
+  epochs: 5
   learning_rate: 0.0001
   optimizer: AdamW
-  weight_decay: 1
+  weight_decay: 0.001

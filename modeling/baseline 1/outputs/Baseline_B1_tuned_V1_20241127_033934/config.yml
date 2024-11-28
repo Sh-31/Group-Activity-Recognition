@@ -1,4 +1,4 @@
-!!python/object:utils.helper.Config
+!!python/object:helper_utils.helper.Config
 data:
   annot_path: data/annot_all.pkl
   data_dir: data
@@ -64,38 +64,25 @@ data:
     - 51
   videos_path: data/videos
 experiment:
-  description: Phase two build group action classifier
-  name: Baseline_B3_step_B
+  description: Single-frame ResNet50 baseline 1 for group activity recognition
+  name: Baseline_B1_tuned
   output_dir: outputs
   seed: 31
   version: 1
 model:
   num_clases_label:
-    group_activity:
-    - r_set
-    - r_spike
-    - r-pass
-    - r_winpoint
-    - l_winpoint
-    - l-pass
-    - l-spike
-    - l_set
-    person_activity:
-    - Waiting
-    - Setting
-    - Digging
-    - Falling
-    - Spiking
-    - Blocking
-    - Jumping
-    - Moving
-    - Standing
-  num_classes:
-    group_activity: 8
-    person_activity: 9
+  - r_set
+  - r_spike
+  - r-pass
+  - r_winpoint
+  - l_winpoint
+  - l-pass
+  - l-spike
+  - l_set
+  num_classes: 8
 training:
-  batch_size: 1
-  epochs: 25
-  learning_rate: 0.0003
+  batch_size: 256
+  epochs: 5
+  learning_rate: 0.0001
   optimizer: AdamW
-  weight_decay: 0.0001
+  weight_decay: 1
