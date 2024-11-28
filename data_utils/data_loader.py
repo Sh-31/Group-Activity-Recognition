@@ -1,3 +1,21 @@
+"""
+Data Loader Function:
+
+Group Activity Data Loader:
+	1. Can return a full image of target frame with its group label (frame, tensor(8)) *needed for B1*. 
+	2. Can return a all player crops of the target frame with its group label all player have same label  ( (12, crop frame), tensor(1,8)) *needed for B3 step B, C*.
+	3. Can return a full clip with each frame dir with its group label (all the same) ((9, frame) , tensor(9,8)) *needed for B4*.
+    4. Can return a full clip with all player crop with its group label (all the same) ((12, 9, crop frame), tensor(9,8)) *needed for B5, B6, B7, B8*.
+
+Person Activity Data Loader:
+	1. Can return crop of player image frames in independent way (crop frame , tensor(9)) *needed for B3 step A , B6*.
+	2. Can return crop of player in the same clip (12 , 9, crop frame) , (tensor(12, 9, 9)) *needed for B5, B7*.
+	
+ Note:
+    1.  frame and crop frame means all image dim (C, H, W).
+    2.  Group Activity Data Loader Case 1 and 2 only utilize target frame of each clip
+
+"""
 import cv2
 import pickle
 import torch
