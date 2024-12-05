@@ -1,6 +1,7 @@
 .kaggle
 data
 *.pkl
-modeling/prototyping.ipynb
 __pycache__
 *.pth
+/modeling/baseline 5
+/modeling/configs/Baseline B5.yml

@@ -1,10 +1,11 @@
-'''
+"""
 Phase two build group action classifier
 1. Get all player croups from traget frames (12, 3, H, W)
 1. Get player image representation (Person action classifier)
 3. MaxPool across all the players
 4. Build NN for group action classifier (using player pooled representation)
-'''
+"""
+
 import os
 import sys
 import yaml
@@ -20,7 +21,7 @@ from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from model import Group_Activity_ClassiferNN, Person_Activity_Classifer
+from model import Group_Activity_ClassiferNN, Person_Activity_Classifer, collate_fn
 
 ROOT = "/teamspace/studios/this_studio"
 PROJECT_ROOT= "/teamspace/studios/this_studio/Group-Activity-Recognition"
@@ -42,7 +43,6 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-
 def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, epoch, writer, logger):
     model.train()
     total_loss = 0
@@ -50,7 +50,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
     total = 0
     
     for batch_idx, (inputs, targets) in enumerate(train_loader):
-        inputs, targets = inputs.squeeze(dim=0).to(device), targets.to(device)
+        inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         
         with autocast(dtype=torch.float16):
@@ -68,7 +68,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 1000 == 0:
+        if batch_idx % 100 == 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -95,7 +95,7 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
     
     with torch.no_grad():
         for inputs, targets in val_loader:
-            inputs, targets = inputs.squeeze(dim=0).to(device), targets.to(device)
+            inputs, targets = inputs.to(device), targets.to(device)
             
             outputs = model(inputs)
             loss = criterion(outputs, targets)
@@ -127,18 +127,26 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
     return avg_loss, accuracy
 
 def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=None):
-    config = load_config(config_path)
-
-    person_activity_cls = Person_Activity_Classifer(num_classes=config.model['num_classes']['person_activity'])
    
-    with open(person_activity_checkpoint_path, 'rb') as f:
-         person_activity_checkpoint = pickle.load(f)
-    
-    person_activity_cls.load_state_dict(person_activity_checkpoint['model_state_dict'])
-    
-    model = Group_Activity_ClassiferNN(person_feature_extraction=person_activity_cls, num_classes=config.model['num_classes']['group_activity'])
-
+    config = load_config(config_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    person_activity_cls = Person_Activity_Classifer(
+        num_classes=config.model['num_classes']['person_activity']
+    )
+   
+    person_activity_cls = load_checkpoint(
+        model=person_activity_cls, 
+        checkpoint_path=person_activity_checkpoint_path, 
+        device=device, 
+        optimizer=None
+    )
+    
+    model = Group_Activity_ClassiferNN(
+        person_feature_extraction=person_activity_cls, 
+        num_classes=config.model['num_classes']['group_activity']
+    )
+    
     model = model.to(device)
    
     optimizer = optim.AdamW(
@@ -231,13 +239,19 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     train_loader = DataLoader(
         train_dataset,
         batch_size=config.training['batch_size'],
+        collate_fn=collate_fn,
         shuffle=True,
+        num_workers=4,
+        pin_memory=True
     )
     
     val_loader = DataLoader(
         val_dataset,
         batch_size=config.training['batch_size'],
-        shuffle=True,
+        collate_fn=collate_fn,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True
     )
     
     criterion = nn.CrossEntropyLoss()
@@ -285,4 +299,4 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
 
 if __name__ == "__main__":
     RESUME_CHECK_POINT  = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_B_V1_20241127_192620/checkpoint_epoch_5.pkl"
-    train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH, RESUME_CHECK_POINT)
+    train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH)

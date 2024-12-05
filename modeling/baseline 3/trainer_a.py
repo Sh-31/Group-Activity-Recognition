@@ -1,6 +1,6 @@
-'''
+"""
 Phase one train person action classifier 
-'''
+"""
 import os
 import sys
 import yaml

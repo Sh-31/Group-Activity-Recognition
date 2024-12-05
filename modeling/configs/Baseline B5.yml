@@ -1,21 +1,34 @@
 # Baseline B5.yml
 
 model:
-  num_classes: 8 
-  input_size: 2048 # this need to be fixed
-  hidden_size: 128
-  num_layers: 1
-  num_clases_label:  ["r_set", "r_spike" , "r-pass", "r_winpoint", "l_winpoint", "l-pass", "l-spike", "l_set"]
+  hyper_param:
+    person_activity:
+       hidden_size: 128
+       num_layers: 1
+
+  num_classes: 
+    person_activity: 9
+    group_activity: 8
+
+  num_clases_label:
+    person_activity: ["Waiting", "Setting", "Digging", "Falling", "Spiking", "Blocking", "Jumping", "Moving", "Standing"]
+    group_activity: ["r_set", "r_spike" , "r-pass", "r_winpoint", "l_winpoint", "l-pass", "l-spike", "l_set"]
 
 training:
-  batch_size: 
-    train: 32
-    val: 64
-  learning_rate: 0.0001 # 1e-4
-  epochs: 25
-  optimizer: "SGD"
-  weight_decay: 0.001 # 1e-3
-
+  person_activity:
+    batch_size: 1
+    learning_rate: 0.0001 # 1e-4
+    epochs: 10
+    optimizer: "AdamW"
+    weight_decay: 0.001 # 1e-3
+  
+  group_activity:
+    batch_size: 1
+    learning_rate: 0.0001 # 1e-4
+    epochs: 10
+    optimizer: "AdamW"
+    weight_decay: 0.001 # 1e-3
+    
 data:
   dataset_name: "GroupActivityDataset"
   data_dir: "data"
@@ -27,12 +40,10 @@ data:
     validation: [0, 2, 8, 12, 17, 19, 24, 26, 27, 28, 30, 33, 46, 49, 51]
     test: [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]
 
+
 experiment:
-  name: "Baseline_B4"
+  name: "Baseline_B5"
   version: 1
   seed: 31
   output_dir: "outputs"
-  description: "Temporal model with image features level 
-be  representation per clip use 9 frames 
-per image then we have sequence for each clip of 9 steps 
-train an LSTM on these sequences."
+  description: "Phase two build group action classifier"

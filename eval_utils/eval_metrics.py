@@ -53,7 +53,6 @@ def model_eval(model, data_loader, criterion=None, path="", device=None, prefix=
 
     with torch.no_grad(): 
         for inputs, targets in data_loader:
-            # in baseline 3 change it to  inputs.squeeze(dim=0).to(device), targets.to(device)
             inputs, targets = inputs.to(device), targets.to(device)
             
             outputs = model(inputs)
