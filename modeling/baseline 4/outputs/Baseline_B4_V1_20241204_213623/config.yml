@@ -1,0 +1,95 @@
+!!python/object:helper_utils.helper.Config
+data:
+  annot_path: input/group-activity-recognition-volleyball/annot_all.pkl
+  data_dir: /kaggle/input/group-activity-recognition-volleyball
+  dataset_name: GroupActivityDataset
+  video_splits:
+    test:
+    - 4
+    - 5
+    - 9
+    - 11
+    - 14
+    - 20
+    - 21
+    - 25
+    - 29
+    - 34
+    - 35
+    - 37
+    - 43
+    - 44
+    - 45
+    - 47
+    train:
+    - 1
+    - 3
+    - 6
+    - 7
+    - 10
+    - 13
+    - 15
+    - 16
+    - 18
+    - 22
+    - 23
+    - 31
+    - 32
+    - 36
+    - 38
+    - 39
+    - 40
+    - 41
+    - 42
+    - 48
+    - 50
+    - 52
+    - 53
+    - 54
+    validation:
+    - 0
+    - 2
+    - 8
+    - 12
+    - 17
+    - 19
+    - 24
+    - 26
+    - 27
+    - 28
+    - 30
+    - 33
+    - 46
+    - 49
+    - 51
+  videos_path: input/group-activity-recognition-volleyball/videos
+experiment:
+  description: Temporal model with image features level be  representation per clip
+    use 9 frames per image then we have sequence for each clip of 9 steps train an
+    LSTM on these sequences.
+  name: Baseline_B4
+  output_dir: outputs
+  seed: 31
+  version: 1
+model:
+  hidden_size: 128
+  input_size: 2048
+  num_clases_label:
+  - r_set
+  - r_spike
+  - r-pass
+  - r_winpoint
+  - l_winpoint
+  - l-pass
+  - l-spike
+  - l_set
+  num_classes: 8
+  num_layers: 1
+training:
+  batch_size:
+    train: 32
+    val: 32
+  epochs: 25
+  learning_rate: 0.001
+  optimizer: AdamW
+  weight_decay: 0.01

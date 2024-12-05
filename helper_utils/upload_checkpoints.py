@@ -1,4 +1,7 @@
-from huggingface_hub import hf_hub_download, login, upload_file
+import os
+import kagglehub
+from huggingface_hub import login, upload_file, list_repo_files, hf_hub_download
+
 
 def authenticate_huggingface(api_token):
     try:
@@ -7,80 +10,103 @@ def authenticate_huggingface(api_token):
     except Exception as e:
         print(f"Authentication failed: {e}")
 
-def download_from_huggingface(repo_id, filename, repo_type, api_token, dest_path=None):
+def upload_directory_to_huggingface(local_dir, remote_dir, repo_id, repo_type, commit_message, api_token):
     """
-    Downloads a file from a Hugging Face repository and optionally moves it to a destination path.
-    
-    Args:
-        repo_id (str): Repository ID in the format "username/repo_name".
-        filename (str): Name of the file to download.
-        repo_type (str): Type of the repository ("model", "dataset", etc.).
-        api_token (str): Hugging Face API token.
-        dest_path (str): Optional. Destination directory where the file will be saved.
-    
-    Returns:
-        str: Final path to the downloaded file.
-    """
-    try:
-        
-        file_path = hf_hub_download(
-            repo_id=repo_id,
-            filename=filename,
-            repo_type=repo_type,
-            token =api_token,
-            local_dir=dest_path
-        )
-        print(f"File downloaded to: {file_path}")
-        return file_path
-    except Exception as e:
-        print(f"Download failed: {e}")
-        return None
+    Uploads an entire directory to a Hugging Face repository.
 
-
-def upload_to_huggingface(local_path, remote_path, repo_id, repo_type, commit_message, api_token):
-    """
-    Uploads a file to a Hugging Face repository.
-    
     Args:
-        local_path (str): Path to the local file to be uploaded.
-        remote_path (str): Path in the repository to upload the file.
+        local_dir (str): Path to the local directory to be uploaded.
+        remote_dir (str): Path in the repository to mirror the directory.
         repo_id (str): Repository ID in the format "username/repo_name".
         repo_type (str): Type of the repository ("model", "dataset", etc.).
         commit_message (str): Commit message for the upload.
         api_token (str): Hugging Face API token.
     """
+    for root, _, files in os.walk(local_dir):
+        for file in files:
+            local_path = os.path.join(root, file)
+            # Create a relative path for the remote location
+            relative_path = os.path.relpath(local_path, start=local_dir)
+            remote_path = os.path.join(remote_dir, relative_path).replace("\\", "/")  # Ensure Unix-style paths
+
+            try:
+                upload_file(
+                    path_or_fileobj=local_path,
+                    path_in_repo=remote_path,
+                    repo_id=repo_id,
+                    repo_type=repo_type,
+                    commit_message=commit_message,
+                    token=api_token
+                )
+                print(f"Uploaded: {local_path} -> {remote_path}")
+            except Exception as e:
+                print(f"Failed to upload {local_path}: {e}")
+
+def download_entire_repo(repo_id, local_folder, repo_type, api_token):
+    """
+    Downloads all files from the root of a Hugging Face repository to a local directory.
+
+    Args:
+        repo_id (str): Repository ID in the format "username/repo_name".
+        local_folder (str): Local directory where the files will be saved.
+        repo_type (str): Type of the repository ("model", "dataset", etc.).
+        api_token (str): Hugging Face API token.
+    """
     try:
-        upload_file(
-            path_or_fileobj=local_path,
-            path_in_repo=remote_path,
-            repo_id=repo_id,
-            repo_type=repo_type,
-            commit_message=commit_message,
-            token=api_token
-        )
-        print(f"File uploaded to: https://huggingface.co/{repo_id}/blob/main/{remote_path}")
+        files = list_repo_files(repo_id=repo_id, repo_type=repo_type, token=api_token)
+        print(f"Files in repo: {files}")
+        
+        os.makedirs(local_folder, exist_ok=True)
+
+        for remote_file in files:
+            local_file_path = os.path.join(local_folder, remote_file)
+            local_file_dir = os.path.dirname(local_file_path)
+            os.makedirs(local_file_dir, exist_ok=True)  # Ensure the directory exists
+            
+            # Download file
+            hf_hub_download(
+                repo_id=repo_id,
+                filename=remote_file,
+                repo_type=repo_type,
+                token=api_token,
+                local_dir=local_file_dir
+            )
+            print(f"Downloaded: {remote_file} -> {local_file_path}")
     except Exception as e:
-        print(f"Upload failed: {e}")
+        print(f"Download failed: {e}")
+
+
 
 if __name__ == "__main__":
+   
+    TOKEN = "hf_"  
+    LOCAL_DIRECTORY = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling"
+    REMOTE_DIRECTORY = ""  # Path in the Hugging Face repository
+    REPO_ID = "shredder-31/GAR"  # Replace with your repo ID
+    REPO_TYPE = "model"  # Type of repository (e.g., "model", "dataset")
+    COMMIT_MESSAGE = "Upload baseline 4 model files and outputs"
 
-    TOKEN = ""
-
+    # Authenticate
     # authenticate_huggingface(TOKEN)
 
-    # download_from_huggingface(
-    #     repo_id="shredder-31/GAR",
-    #     filename="outputs.zip",
-    #     repo_type="model",
-    #     api_token=TOKEN,
-    #     dest_path="/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs"
+    # # Upload directory to Hugging Face
+    # upload_directory_to_huggingface(
+    #     local_dir=LOCAL_DIRECTORY,
+    #     remote_dir=REMOTE_DIRECTORY,
+    #     repo_id=REPO_ID,
+    #     repo_type=REPO_TYPE,
+    #     commit_message=COMMIT_MESSAGE,
+    #     api_token=TOKEN
     # )
 
-    # upload_to_huggingface(
-    #     local_path="/kaggle/working/outputs.zip",
-    #     remote_path="outputs.zip", 
-    #     repo_id="shredder-31/GAR",
-    #     repo_type="model",
-    #    commit_message="upload model checkpoints", 
-    #    api_token=TOKEN
+    # download_entire_repo(
+    #     repo_id=REPO_ID,
+    #     local_folder=LOCAL_DIRECTORY,
+    #     repo_type=REPO_TYPE,
+    #     api_token=TOKEN
     # )
+
+    
+    path = kagglehub.model_download("sherif31/gar-baseline-4/pyTorch/v_2")
+
+    print("Path to model files:", path)

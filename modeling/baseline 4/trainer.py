@@ -15,9 +15,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from model import Group_Activity_Temporal_Classifer , collate_fn
 
-ROOT = "/teamspace/studios/this_studio"
-PROJECT_ROOT= "/teamspace/studios/this_studio/Group-Activity-Recognition"
-CONFIG_FILE_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B4.yml"
+ROOT = "/kaggle/"
+PROJECT_ROOT= "/kaggle/working/Group-Activity-Recognition"
+CONFIG_FILE_PATH = "/kaggle/working/Group-Activity-Recognition/modeling/configs/Baseline B4.yml"
 
 sys.path.append(os.path.abspath(PROJECT_ROOT))
 
@@ -171,8 +171,8 @@ def train_model(config_path):
     ])
     
     train_dataset = Group_Activity_DataSet(
-        videos_path=f"{PROJECT_ROOT}/{config.data['videos_path']}",
-        annot_path=f"{PROJECT_ROOT}/{config.data['annot_path']}",
+        videos_path=f"{ROOT}/{config.data['videos_path']}",
+        annot_path=f"{ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['train'],
         crops=False,
         seq=True,
@@ -181,8 +181,8 @@ def train_model(config_path):
     )
     
     val_dataset = Group_Activity_DataSet(
-        videos_path=f"{PROJECT_ROOT}/{config.data['videos_path']}",
-        annot_path=f"{PROJECT_ROOT}/{config.data['annot_path']}",
+        videos_path=f"{ROOT}/{config.data['videos_path']}",
+        annot_path=f"{ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['validation'],
         crops=False,
         seq=True,

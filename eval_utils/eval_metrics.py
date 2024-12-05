@@ -6,11 +6,12 @@ from sklearn.metrics import confusion_matrix, classification_report, f1_score
 def get_f1_score(y_true, y_pred, average='weighted', report=False):
     if report:
         print("Classification Report:\n")
-        print(classification_report(y_true, y_pred))
+        print(classification_report(y_true, y_pred, zero_division=1))
     else:
         f1 = f1_score(y_true, y_pred, average=average)
         print(f"F1 Score: {f1:.4f}")
         return f1
+
 
 def plot_confusion_matrix(y_true, y_pred, class_names, save_path=None):
     cm = confusion_matrix(y_true, y_pred)
@@ -53,7 +54,7 @@ def model_eval(model, data_loader, criterion=None, path="", device=None, prefix=
     with torch.no_grad(): 
         for inputs, targets in data_loader:
             # in baseline 3 change it to  inputs.squeeze(dim=0).to(device), targets.to(device)
-            inputs, targets = inputs.squeeze(dim=0).to(device), targets.to(device)
+            inputs, targets = inputs.to(device), targets.to(device)
             
             outputs = model(inputs)
             

@@ -37,13 +37,13 @@ class Group_Activity_Temporal_Classifer(nn.Module):
                         )
 
         self.fc =  nn.Sequential(
-            nn.Linear(hidden_size, 32),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(32, 32),
+            nn.Linear(hidden_size, 128),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(32, num_classes)
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, num_classes)
         )
     
     def forward(self, x):
@@ -73,7 +73,7 @@ def model_summary(args):
     from helper_utils import load_config
 
     config = load_config(args.config_path)
-    
+
     model = Group_Activity_Temporal_Classifer(
         num_classes=config.model["num_classes"], 
         input_size=config.model["input_size"], 
@@ -86,8 +86,6 @@ def model_summary(args):
 def eval(args, checkpoint_path):
 
     sys.path.append(os.path.abspath(args.project_root))
-    
-    import pickle
     from helper_utils import load_config, load_checkpoint
     from eval_utils import model_eval
     from data_utils import Group_Activity_DataSet, group_activity_labels
@@ -96,13 +94,19 @@ def eval(args, checkpoint_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = Group_Activity_Temporal_Classifer(
-        num_classes=config.model['num_classes'],
-        input_size=config.model['input_size'],
-        hidden_size=config.model['hidden_size'],
-        num_layers=config.model['num_layers']
+            num_classes=config.model['num_classes'],
+            input_size=config.model['input_size'],
+            hidden_size=config.model['hidden_size'],
+            num_layers=config.model['num_layers']
         )
 
-    model = load_checkpoint(model=model, checkpoint_path=checkpoint_path, device=device, optimizer=None)
+    model = load_checkpoint(
+                model=model, 
+                checkpoint_path=checkpoint_path, 
+                device=device, 
+                optimizer=None
+            )
+
     model = model.to(device)
 
     test_transforms = A.Compose([
@@ -120,13 +124,13 @@ def eval(args, checkpoint_path):
         split=config.data['video_splits']['test'],
         labels=group_activity_labels, 
         transform=test_transforms,
-        crops=True,
-        seq=False, 
+        crops=False,
+        seq=True,
     )
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=64,
+        batch_size=80,
         shuffle=True,
         collate_fn=collate_fn,
         num_workers=4,
@@ -135,19 +139,26 @@ def eval(args, checkpoint_path):
     
     criterion = nn.CrossEntropyLoss()
    
-    path = f"{args.project_root}/modeling/baseline 3/outputs"
+    path = f"{args.project_root}/modeling/baseline 4/outputs"
     prefix = "Group Activity Baseline 4 eval on testset"
 
-    metrics = model_eval(model=model, data_loader=test_loader, criterion=criterion, device=device , path=path, prefix=prefix, class_names=config.model["num_clases_label"]['group_activity'])
+    metrics = model_eval(
+            model=model, 
+            data_loader=test_loader, 
+            criterion=criterion, 
+            device=device, 
+            path=path, 
+            prefix=prefix, 
+            class_names=config.model["num_clases_label"]
+    )
 
     return metrics
-
 
 if __name__ == "__main__":
     
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B4.yml"    
-    CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_B_V1_20241127_192620/checkpoint_epoch_4.pkl"
+    CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 4/outputs/Baseline_B4_V1_20241204_213623/checkpoint_epoch_13.pkl"
    
     parser = argparse.ArgumentParser(description="Group Activity Recognition Model Configuration")
     parser.add_argument("--project_root", type=str, default=ROOT,
@@ -157,7 +168,30 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     
-    model_summary(args) # Show model details 
-    # eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, CHECKPOINT_PATH) # eval model against  testset
+    # model_summary(args) # Show model details 
+    eval(args, CHECKPOINT_PATH) # eval model against  testset
 
- 
+    # ==================================================
+    #  Group Activity Baseline 4 eval on testset
+    # ==================================================
+    # Accuracy : 73.45%
+    # Average Loss: 0.8009
+    # F1 Score (Weighted): 0.7327
+
+    # Classification Report:
+    #               precision    recall  f1-score   support
+
+    #        r_set       0.68      0.64      0.66       192
+    #      r_spike       0.79      0.80      0.80       173
+    #       r-pass       0.70      0.67      0.68       210
+    #   r_winpoint       0.76      0.74      0.75        87
+    #   l_winpoint       0.83      0.88      0.85       102
+    #       l-pass       0.70      0.71      0.70       226
+    #      l-spike       0.79      0.88      0.83       179
+    #        l_set       0.69      0.65      0.67       168
+
+    #     accuracy                           0.73      1337
+    #    macro avg       0.74      0.75      0.74      1337
+    # weighted avg       0.73      0.73      0.73      1337
+
+    # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 4/outputs/Group_Activity_Baseline_4_eval_on_testset_confusion_matrix.png

@@ -1,4 +1,5 @@
 kaggle
+kagglehub
 numpy==1.26.4
 pandas==2.1.4
 opencv-python-headless==4.10.0.84
