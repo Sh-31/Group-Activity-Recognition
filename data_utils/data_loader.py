@@ -275,7 +275,8 @@ class Group_Activity_DataSet(Dataset):
                             frames_boxes.append(box)
 
                          frame_data.append((frame_path, frames_boxes))
-                         self.data.append({
+                      
+                      self.data.append({
                             'frame_data':frame_data,
                             'category': category,
                         })      
