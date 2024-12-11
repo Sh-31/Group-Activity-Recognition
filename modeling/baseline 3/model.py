@@ -39,7 +39,7 @@ class Group_Activity_ClassiferNN(nn.Module):
         for param in self.feature_extraction.parameters():
             param.requires_grad = False
         
-        self.pool = nn.AdaptiveMaxPool2d((1, 2048))  # [12, 2048] -> [1, 4096]
+        self.pool = nn.AdaptiveMaxPool2d((1, 2048))  # [12, 2048] -> [1, 2048]
         
         self.fc = nn.Sequential(
             nn.Linear(2048, 1024),

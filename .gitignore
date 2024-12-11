@@ -3,3 +3,6 @@ data
 *.pkl
 __pycache__
 *.pth
+/modeling/baseline 6
+/modeling/baseline 5
+/modeling/configs/Baseline B6.yml
