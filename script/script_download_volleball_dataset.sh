@@ -31,7 +31,7 @@ fi
 
 # Download the dataset using the Kaggle API
 echo "Downloading dataset..."
-kaggle datasets download -d ahmedmohamed365/volleyball -p "$DATA_DIR" --unzip
+kaggle datasets download -d sherif31/group-activity-recognition-volleyball -p "$DATA_DIR" --unzip
 
 # Confirm completion
 if [ $? -eq 0 ]; then
