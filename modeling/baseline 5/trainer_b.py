@@ -1,36 +1,34 @@
 """
-Phase two build group action classifier
-1. Get all player croups from traget frames (12, 3, H, W)
-1. Get player image representation (Person action classifier)
-3. MaxPool across all the players
-4. Build NN for group action classifier (using player pooled representation)
+Phase two build group action classifier:
+1. Get all player croups from traget clip (12, 9, 3, 224, 224)
+1. Get player image representation (person activity temporal representation)
+3. MaxPool across all the players temporal representation
+4. Build NN for group action classifier (using temporal player pooled representation)
 """
-
 import os
 import sys
 import yaml
 import torch
 import random
-import pickle
 import numpy as np
 import torch.nn as nn
 import albumentations as A
 import torch.optim as optim
 from datetime import datetime
+import torch.multiprocessing as mp
 from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from model import Person_Activity_Temporal_Classifer, Group_Activity_Classifer, group_collate_fn
+from model import Group_Activity_Classifer, group_collate_fn, Person_Activity_Temporal_Classifer, person_collate_fn
 
-ROOT = "/teamspace/studios/this_studio"
-PROJECT_ROOT= "/teamspace/studios/this_studio/Group-Activity-Recognition"
-CONFIG_FILE_PATH = ""
-PERSON_ACTIVITY_CHECKPOINT_PATH = ""
+ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
+PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_A_V1_20241211_143801/checkpoint_epoch_7.pkl"
+CONFIG_FILE_PATH = f"{ROOT}/modeling/configs/Baseline B5.yml"
 
-sys.path.append(os.path.abspath(PROJECT_ROOT))
+sys.path.append(os.path.abspath(ROOT))
 
-from data_utils import Group_Activity_DataSet, group_activity_labels
+from data_utils import Group_Activity_DataSet, group_activity_labels, Person_Activity_DataSet, person_activity_labels
 from eval_utils import get_f1_score, plot_confusion_matrix
 from helper_utils import load_config, setup_logging, load_checkpoint, save_checkpoint
 
@@ -51,6 +49,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
     
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         inputs, targets = inputs.to(device), targets.to(device)
+        
         optimizer.zero_grad()
         
         with autocast(dtype=torch.float16):
@@ -122,9 +121,7 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
     writer.add_scalar('Validation/Loss', avg_loss, epoch)
     writer.add_scalar('Validation/Accuracy', accuracy, epoch)
     
-    logger.info(f"Epoch {epoch} | Valid Loss: {avg_loss:.4f} | Accuracy: {accuracy:.2f}% | F1 Score: {f1_score:.4f}")
-    
-    return avg_loss, accuracy
+    return avg_loss, accuracy, f1_score
 
 def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=None):
    
@@ -138,11 +135,12 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     )
    
     person_act_cls = load_checkpoint(
-        model=person_act_cls, 
-        checkpoint_path=person_activity_checkpoint_path, 
-        device=device, 
-        optimizer=None
+        person_activity_checkpoint_path, 
+        person_act_cls, 
+        None, 
+        device
     )
+    
     
     model = Group_Activity_Classifer(
         person_feature_extraction=person_act_cls, 
@@ -151,11 +149,19 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     
     model = model.to(device)
    
-    optimizer = optim.AdamW(
-        model.parameters(),
-        lr=config.training['learning_rate'],
-        weight_decay=config.training['weight_decay']
-    )
+    if config.training['group_activity']['optimizer'] == "AdamW":
+        optimizer = optim.AdamW(
+            model.parameters(),
+            lr=config.training['group_activity']['learning_rate'],
+            weight_decay=config.training['group_activity']['weight_decay']
+        )
+    
+    elif config.training['group_activity']['optimizer'] == "SGD":
+        optimizer = optim.SGD(
+            model.parameters(),
+            lr=config.training['group_activity']['learning_rate'],
+            weight_decay=config.training['group_activity']['weight_decay']
+        )
     
     start_epoch = 0
     best_val_acc = 0
@@ -167,12 +173,11 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         if loaded_config:
             config = loaded_config
             logger.info(f"Resumed training from epoch {start_epoch}")
-            logger.info(f"Best validation accuracy so far: {best_val_acc:.2f}%")
     else:
          timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
        
          exp_dir = os.path.join(
-                f"{PROJECT_ROOT}/modeling/baseline 5/{config.experiment['output_dir']}",
+                f"{ROOT}/modeling/baseline 5/{config.experiment['output_dir']}",
                 f"{config.experiment['name']}_V{config.experiment['version']}_{timestamp}"
             )
          
@@ -194,7 +199,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
             A.GaussNoise()
-        ], p=0.5),
+        ], p=0.55),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
@@ -216,23 +221,23 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     ])
 
     train_dataset = Group_Activity_DataSet(
-        videos_path=f"{PROJECT_ROOT}/{config.data['videos_path']}",
-        annot_path=f"{PROJECT_ROOT}/{config.data['annot_path']}",
+        videos_path=f"{ROOT}/{config.data['videos_path']}",
+        annot_path=f"{ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['train'],
         labels=group_activity_labels,
         transform=train_transforms,
         crops=True,
-        seq=False, 
+        seq=True, 
     )
     
     val_dataset = Group_Activity_DataSet(
-        videos_path=f"{PROJECT_ROOT}/{config.data['videos_path']}",
-        annot_path=f"{PROJECT_ROOT}/{config.data['annot_path']}",
+        videos_path=f"{ROOT}/{config.data['videos_path']}",
+        annot_path=f"{ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['validation'],
         labels=group_activity_labels,
         transform=val_transforms,
         crops=True,
-        seq=False, 
+        seq=True, 
     )
     
     logger.info(f"Training dataset size: {len(train_dataset)}")
@@ -240,7 +245,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config.training['person_activity']['batch_size'],
+        batch_size=config.training['group_activity']['batch_size'],
         collate_fn=group_collate_fn,
         shuffle=True,
         num_workers=4,
@@ -249,7 +254,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     
     val_loader = DataLoader(
         val_dataset,
-        batch_size=config.training['person_activity']['batch_size'],
+        batch_size=config.training['group_activity']['batch_size'],
         collate_fn=group_collate_fn,
         shuffle=False,
         num_workers=4,
@@ -257,13 +262,13 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     )
     
     criterion = nn.CrossEntropyLoss()
-    scaler = GradScaler()
     
+    scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode='min',
         factor=0.1,
-        patience=5,
+        patience=2,
     )
     
     config_save_path = os.path.join(exp_dir, 'config.yml')
@@ -271,16 +276,20 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         yaml.dump(config, f)
     
     logger.info("Starting training...")
-    for epoch in range(start_epoch, config.training['epochs']):
-        logger.info(f'\nEpoch {epoch+1}/{config.training["epochs"]}')
+    
+    for epoch in range(start_epoch, 25):
+        logger.info(f'\nEpoch {epoch+1}/{25}')
         
         train_loss, train_acc = train_one_epoch(
             model, train_loader, criterion, optimizer, scaler, device, epoch, writer, logger
         )
         
-        val_loss, val_acc = validate_model(
-            model, val_loader, criterion, device, epoch, writer, logger, config.model['num_clases_label']
+        val_loss, val_acc, val_f1_score = validate_model(
+            model, val_loader, criterion, device, epoch, writer, logger, config.model['num_clases_label']['group_activity']
         )
+
+        logger.info(f"Epoch {epoch} | Train Loss: {train_loss:.4f} | Train Accuracy: {train_acc:.2f}%")
+        logger.info(f"Epoch {epoch} | Valid Loss: {val_loss:.4f} | Valid Accuracy: {val_acc:.2f}% | Valid F1 Score: {val_f1_score:.4f}")
         
         scheduler.step(val_loss)
         
@@ -295,9 +304,9 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         logger.info(f'Current learning rate: {current_lr}')
     
     writer.close()
-    
     logger.info(f"Training completed.")
 
 if __name__ == "__main__":
-    # RESUME_CHECK_POINT  = ""
+    mp.set_start_method('spawn', force=True)
+    # RESUME_CHECK_POINT  =  f"{ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_B_V1_20241212_032520/checkpoint_epoch_13.pkl"
     train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH)

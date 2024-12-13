@@ -20,7 +20,10 @@ from torchinfo import summary
 class Person_Activity_Temporal_Classifer(nn.Module):
     def __init__(self, num_classes, hidden_size, num_layers):
         super(Person_Activity_Temporal_Classifer, self).__init__()
-        self.resnet50 = nn.Sequential(*list(models.resnet50(weights=models.ResNet50_Weights.DEFAULT).children())[:-1])
+        
+        self.resnet50 = nn.Sequential(
+            *list(models.resnet50(weights=models.ResNet50_Weights.DEFAULT).children())[:-1]
+        )
         
         self.lstm = nn.LSTM(
                             input_size=2048,
@@ -30,13 +33,10 @@ class Person_Activity_Temporal_Classifer(nn.Module):
                         )
 
         self.fc =  nn.Sequential(
-            nn.Linear(hidden_size, 32),
+            nn.Linear(hidden_size, 512),
             nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(32, 32),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(32, num_classes)
+            nn.Dropout(0.5),
+            nn.Linear(512, num_classes)
         )
     
     def forward(self, x):
@@ -49,7 +49,7 @@ class Person_Activity_Temporal_Classifer(nn.Module):
         x, (h , c) = self.lstm(x) # (batch * bbox, seq, hidden_size)
 
         x = x[:, -1, :] # (batch * bbox, hidden_size)
-        x = self.fc(x)  # (batch * bbox, num_class)  
+        x = self.fc(x) # (batch * bbox, num_class)  
         
         return x
 
@@ -67,13 +67,13 @@ class Group_Activity_Classifer(nn.Module):
         self.pool = nn.AdaptiveMaxPool2d((1, 2048))  # [Batch, 12, hidden_size] -> [Batch, 1, 2048]
         
         self.fc = nn.Sequential(
-            nn.Linear(2048, 1024),
-            nn.BatchNorm1d(1024),
+            nn.Linear(2048, 512),
+            nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(1024, 128),
+            nn.Linear(512, 128),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.5),
             nn.Linear(128, num_classes), 
         )
     
@@ -119,7 +119,7 @@ def person_collate_fn(batch):
     padded_clips = torch.stack(padded_clips)
     padded_labels = torch.stack(padded_labels)
     
-    padded_labels = padded_labels[:, :, -1, :]  # utile the label of last frame
+    padded_labels = padded_labels[:, :, -1, :]  # utils the label of last frame for each player
     b, bb, num_class = padded_labels.shape # batch, bbox, num_clases
     padded_labels = padded_labels.view(b*bb, num_class)
 
@@ -145,72 +145,86 @@ def group_collate_fn(batch):
     padded_clips = torch.stack(padded_clips)
     labels = torch.stack(labels)
     
-    labels = labels[:,-1, :]  # utile the label of last frame
+    labels = labels[:,-1, :] # utils the label of last frame
     
     return padded_clips, labels
 
-# def eval(args, person_activity_checkpoint, checkpoint_path):
+def eval(args, person_activity_checkpoint, checkpoint_path):
 
-#     sys.path.append(os.path.abspath(args.project_root))
-#     from helper_utils import load_config, load_checkpoint
-#     from eval_utils import model_eval
-#     from data_utils import Group_Activity_DataSet, group_activity_labels
+    sys.path.append(os.path.abspath(args.ROOT))
+    from helper_utils import load_config, load_checkpoint
+    from eval_utils import model_eval
+    from data_utils import Group_Activity_DataSet, group_activity_labels
     
-#     config = load_config(args.config_path)
+    config = load_config(args.config_path)
 
-#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#     person_activity_cls = Person_Activity_Classifer(num_classes=config.model['num_classes']['person_activity'])
+    person_activity_cls = Person_Activity_Temporal_Classifer(
+        num_classes=config.model['num_classes']['person_activity'],
+        hidden_size=config.model['hyper_param']['person_activity']['hidden_size'],
+        num_layers=config.model['hyper_param']['person_activity']['num_layers']
+    )
    
-#     person_activity_cls = load_checkpoint(model=person_activity_cls, checkpoint_path=person_activity_checkpoint, device=device, optimizer=None)
+    person_activity_cls = load_checkpoint(
+        model=person_activity_cls, 
+        checkpoint_path=person_activity_checkpoint, 
+        device=device, 
+        optimizer=None
+    )
     
-#     model = Group_Activity_ClassiferNN(person_feature_extraction=person_activity_cls, num_classes=config.model['num_classes']['group_activity'])
+    model = Group_Activity_Classifer(
+        person_feature_extraction=person_activity_cls, 
+        num_classes=config.model['num_classes']['group_activity']
+    )
 
-#     model = load_checkpoint(model=model, checkpoint_path=checkpoint_path, device=device, optimizer=None)
-
-#     model = model.to(device)
-
-#     test_transforms = A.Compose([
-#         A.Resize(224, 224),
-#         A.Normalize(
-#             mean=[0.485, 0.456, 0.406],
-#             std=[0.229, 0.224, 0.225]
-#         ),
-#         ToTensorV2()
-#     ])
-    
-#     test_dataset = Group_Activity_DataSet(
-#         videos_path=f"{args.project_root}/{config.data['videos_path']}",
-#         annot_path=f"{args.project_root}/{config.data['annot_path']}",
-#         split=config.data['video_splits']['test'],
-#         labels=group_activity_labels, 
-#         transform=test_transforms,
-#         crops=True,
-#         seq=False, 
-#     )
-
-#     test_loader = DataLoader(
-#         test_dataset,
-#         batch_size=1,
-#         shuffle=True,
-#         num_workers=4,
-#         pin_memory=True
-#     )
-    
-#     criterion = nn.CrossEntropyLoss()
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
    
-#     path = f"{args.project_root}/modeling/baseline 5/outputs"
-#     prefix = "Group Activity Baseline 5 eval on testset"
+    model = model.to(device)
 
-#     metrics = model_eval(model=model, data_loader=test_loader, criterion=criterion, device=device , path=path, prefix=prefix, class_names=config.model["num_clases_label"]['group_activity'])
+    test_transforms = A.Compose([
+        A.Resize(224, 224),
+        A.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        ),
+        ToTensorV2()
+    ])
+    
+    test_dataset = Group_Activity_DataSet(
+        videos_path=f"{args.ROOT}/{config.data['videos_path']}",
+        annot_path=f"{args.ROOT}/{config.data['annot_path']}",
+        split=config.data['video_splits']['test'],
+        labels=group_activity_labels, 
+        transform=test_transforms,
+        crops=True,
+        seq=True, 
+    )
 
-#     return metrics
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=8,
+        collate_fn=group_collate_fn,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True
+    )
+    
+    criterion = nn.CrossEntropyLoss()
+   
+    path = f"{args.ROOT}/modeling/baseline 5/outputs"
+    prefix = "Group Activity Baseline 5 eval on testset"
+
+    metrics = model_eval(model=model, data_loader=test_loader, criterion=criterion, device=device , path=path, prefix=prefix, class_names=config.model["num_clases_label"]['group_activity'])
+
+    return metrics
 
 if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
-    MODEL_CONFIG = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B5.yml"    
-    PERSON_ACTIVITY_CHECKPOINT_PATH = ""
-    GROUP_ACTIVITY_CHECKPOINT_PATH = ""
+    MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B5.yml"    
+    PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_A_V1_20241211_143801/checkpoint_epoch_7.pkl"
+    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_B_V1_20241212_032520/checkpoint_epoch_15.pkl"
    
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -235,4 +249,5 @@ if __name__ == "__main__":
         num_classes=config.model['num_classes']['group_activity']
     )
 
-    # summary(model)
+    summary(model)
+    eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, GROUP_ACTIVITY_CHECKPOINT_PATH)

@@ -3,7 +3,7 @@
 model:
   hyper_param:
     person_activity:
-       hidden_size: 128
+       hidden_size: 512
        num_layers: 1
 
   num_classes: 
