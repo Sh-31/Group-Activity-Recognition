@@ -5,15 +5,15 @@ Group Activity Data Loader:
 	1. Can return a full image of target frame with its group label (frame, tensor(8)) *needed for B1*. 
 	2. Can return a all player crops of the target frame with its group label all player have same label  ( (12, crop frame), tensor(1,8)) *needed for B3 step B, C*.
 	3. Can return a full clip with each frame dir with its group label (all the same) ((9, frame) , tensor(9,8)) *needed for B4*.
-    4. Can return a full clip with all player crop with its group label (all the same) ((12, 9, crop frame), tensor(9,8)) *needed for B5, B6, B7, B8*.
+    4. Can return a full clip with all player crop with its group label (all the same) ((12, 9, crop frame), tensor(9,8)) *needed for B5, B6, B7*.
 
 Person Activity Data Loader:
 	1. Can return crop of player image frames in independent way (crop frame , tensor(9)) *needed for B3 step A , B6*.
 	2. Can return crop of player in the same clip (12 , 9, crop frame) , (tensor(12, 9, 9)) *needed for B5, B7*.
 	
  Note:
-    1.  frame and crop frame means all image dim (C, H, W).
-    2.  Group Activity Data Loader Case 1 and 2 only utilize target frame of each clip
+    1.  Frame and crop frame means all image dim (C, H, W).
+    2.  The Sort flag (sort the player by the tracer id) *needed for B8*.
 
 """
 import cv2
@@ -35,7 +35,6 @@ person_activity_labels = {class_name.lower():i for i, class_name in enumerate(pe
 
 group_activity_clases = ["r_set", "r_spike", "r-pass", "r_winpoint", "l_winpoint", "l-pass", "l-spike", "l_set"]
 group_activity_labels = {class_name:i for i, class_name in enumerate(group_activity_clases)}
-
 
 class Person_Activity_DataSet(Dataset):
     def __init__(self, videos_path: str, annot_path: str, seq: bool = False, 
@@ -181,7 +180,7 @@ class Person_Activity_DataSet(Dataset):
              
 class Group_Activity_DataSet(Dataset):
     def __init__(self, videos_path: str, annot_path: str, seq: bool = False, 
-                 crops: bool = False, split: list = [], only_tar: bool= False,
+                 crops: bool = False, sort: bool=False , split: list = [], only_tar: bool= False,
                  labels: dict = {}, transform=None):
         """
         Args:
@@ -189,6 +188,7 @@ class Group_Activity_DataSet(Dataset):
             annot_path: Path to annotations file
             seq: Whether to return sequential data
             crops: Whether to return person crops or full frames
+            sort: sort the persons by the ids
             split: List of clip IDs to use
             labels: Group activity labels dictionary
             transform: Optional transform to apply
@@ -200,6 +200,7 @@ class Group_Activity_DataSet(Dataset):
         self.crops = crops
         self.labels = labels
         self.only_tar = False
+        self.sort = sort
         
         # Load annotations and store only metadata
         with open(annot_path, 'rb') as f:
@@ -285,12 +286,20 @@ class Group_Activity_DataSet(Dataset):
     def __len__(self):
         return len(self.data)
     
+    def _calculate_box_center(self, box: BoxInfo):
+    
+        x_min, y_min, x_max, y_max = box
+        x_center = (x_min + x_max) / 2
+
+        return  x_center
 
     def extract_person_crops(self, frame: np.ndarray, boxes: List[BoxInfo]):
         """Extract and transform person crops from frame"""
         crops: List = []
+        order: List = []
         for box in boxes:
             x_min, y_min, x_max, y_max = box.box
+            x_center = self._calculate_box_center(box.box)
           
             person_crop = frame[y_min:y_max, x_min:x_max]
         
@@ -299,8 +308,13 @@ class Group_Activity_DataSet(Dataset):
                 person_crop = transformed['image']
                 
             crops.append(person_crop)
-    
-        return torch.stack(crops)
+            order.append(x_center)
+
+        if self.sort:
+            return crops, order   
+        else:
+            return torch.stack(crops)
+                   
 
     def __getitem__(self, idx):
         sample = self.data[idx]
@@ -340,15 +354,24 @@ class Group_Activity_DataSet(Dataset):
              # when crop and seq are true return a full clip with all player crop with its group label (all the same) ((12, 9, crop frame), tensor(9,8)
              clip = []
              labels = []
+             frames = []
 
              for frame_path, boxes in sample['frame_data']:
                 frame = cv2.imread(frame_path)
-                crops = self.extract_person_crops(frame, boxes) 
+                
+                if self.sort: # if sort true then sort player crops by player x-axis positions
+                    crops, order = self.extract_person_crops(frame, boxes) 
+                    frames.append(frame)
+                    crops = [crop for order_value, crop in sorted(zip(order, crops), key=lambda pair: pair[0])] 
+                    crops = torch.stack(crops)
+                else:
+                    crops = self.extract_person_crops(frame, boxes)     
+
                 clip.append(crops)
-                labels.append(label) 
+                labels.append(label)
 
              # Rearrange dimensions to (12, 9, C, H, W) for clip_frames_tensor  
              clip = torch.stack(clip).permute(1, 0, 2, 3, 4) 
              labels = torch.stack(labels)
 
-             return clip , labels
+             return clip, labels
