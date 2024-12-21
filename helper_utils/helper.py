@@ -43,8 +43,7 @@ def save_checkpoint(model, optimizer, epoch, val_acc, config, exp_dir, is_best=F
     }
     
     checkpoint_path = os.path.join(exp_dir, f"checkpoint_epoch_{epoch}.pkl")
-    with open(checkpoint_path, 'wb') as f:
-        pickle.dump(checkpoint, f)
+    torch.save(checkpoint, checkpoint_path)
     print(f"Checkpoint saved at {checkpoint_path}")
  
     if is_best:
@@ -63,12 +62,7 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
     Returns:
         tuple: (model, optimizer, config, exp_dir, start_epoch)
     """
-
-    if checkpoint_path.endswith('.pkl'):
-        with open(checkpoint_path, 'rb') as f:
-            checkpoint = pickle.load(f)
-    else:
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device)
     
     model.load_state_dict(checkpoint['model_state_dict'])
 
