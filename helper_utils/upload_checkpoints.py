@@ -105,8 +105,3 @@ if __name__ == "__main__":
     #     repo_type=REPO_TYPE,
     #     api_token=TOKEN
     # )
-
-    
-    path = kagglehub.model_download("sherif31/gar-baseline-4/pyTorch/v_2")
-
-    print("Path to model files:", path)

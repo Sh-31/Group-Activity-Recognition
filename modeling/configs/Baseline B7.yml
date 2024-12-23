@@ -1,11 +1,15 @@
-# Baseline B5.yml
+# Baseline B7.yml
 
 model:
   hyper_param:
     person_activity:
-       hidden_size: 128
+       hidden_size: 512
        num_layers: 1
-       
+
+    group_activity:
+       hidden_size: 512
+       num_layers: 1
+        
   num_classes: 
     person_activity: 9
     group_activity: 8
@@ -17,18 +21,20 @@ model:
 training:
   person_activity:
     batch_size: 2
-    learning_rate: 0.00001 # 1e-5
-    epochs: 20
+    learning_rate: 0.0002 # 2e-4
+    epochs: 10
     optimizer: "AdamW"
-    weight_decay: 0.1
-    label_smoothing: 0.02 # needed to reduce overfitting
-  
+    weight_decay: 0.1 
+    label_smoothing: 0.1
+    
   group_activity:
     batch_size: 8
     learning_rate: 0.0001 # 1e-4
-    epochs: 35
-    optimizer: "AdamW"
+    epochs: 25
+    optimizer: "SGD"
+    momentum: 0.9
     weight_decay: 1
+    label_smoothing: 0.15
     
 data:
   dataset_name: "GroupActivityDataset"
@@ -42,8 +48,8 @@ data:
     test: [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]
 
 experiment:
-  name: "Baseline_B5_Step_B"
+  name: "Baseline_B7_Step_B"
   version: 1
   seed: 31
   output_dir: "outputs"
-  description: "Phase two build group action classifier"
+  description: "Phase two train group activity temporal classifer"

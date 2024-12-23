@@ -1,0 +1,64 @@
+2024-12-22 22:57:10,914 [INFO] Resumed training from epoch 18
+2024-12-22 22:57:10,914 [INFO] Starting experiment: Baseline_B5_Step_B_V1
+2024-12-22 22:57:10,915 [INFO] Using device: cuda
+2024-12-22 22:57:10,916 [INFO] Set random seed: 31
+2024-12-22 22:57:18,038 [INFO] Training dataset size: 2152
+2024-12-22 22:57:18,039 [INFO] Validation dataset size: 1341
+2024-12-22 22:57:18,044 [INFO] Starting training...
+2024-12-22 22:57:18,045 [INFO] 
+Epoch 19/25
+2024-12-22 22:58:08,808 [INFO] Epoch: 18 | Batch: 0/269 | Loss: 1.0455 | Acc: 75.00%
+2024-12-22 23:01:06,741 [INFO] Epoch: 18 | Batch: 100/269 | Loss: 0.2920 | Acc: 86.26%
+2024-12-22 23:04:16,447 [INFO] Epoch: 18 | Batch: 200/269 | Loss: 0.3038 | Acc: 85.51%
+2024-12-22 23:11:12,560 [INFO] Epoch 18 | Train Loss: 0.4566 | Train Accuracy: 85.46%
+2024-12-22 23:11:12,561 [INFO] Epoch 18 | Valid Loss: 0.7326 | Valid Accuracy: 74.57% | Valid F1 Score: 0.7376
+2024-12-22 23:11:13,586 [INFO] Current learning rate: 1e-05
+2024-12-22 23:11:13,587 [INFO] 
+Epoch 20/25
+2024-12-22 23:12:02,386 [INFO] Epoch: 19 | Batch: 0/269 | Loss: 1.0529 | Acc: 37.50%
+2024-12-22 23:15:04,970 [INFO] Epoch: 19 | Batch: 100/269 | Loss: 0.5504 | Acc: 84.28%
+2024-12-22 23:18:13,627 [INFO] Epoch: 19 | Batch: 200/269 | Loss: 0.2757 | Acc: 85.26%
+2024-12-22 23:25:06,822 [INFO] Epoch 19 | Train Loss: 0.4488 | Train Accuracy: 85.32%
+2024-12-22 23:25:06,822 [INFO] Epoch 19 | Valid Loss: 0.7296 | Valid Accuracy: 73.97% | Valid F1 Score: 0.7332
+2024-12-22 23:25:07,115 [INFO] Current learning rate: 1e-05
+2024-12-22 23:25:07,116 [INFO] 
+Epoch 21/25
+2024-12-22 23:25:55,399 [INFO] Epoch: 20 | Batch: 0/269 | Loss: 0.8985 | Acc: 75.00%
+2024-12-22 23:28:53,059 [INFO] Epoch: 20 | Batch: 100/269 | Loss: 0.7587 | Acc: 87.25%
+2024-12-22 23:32:01,824 [INFO] Epoch: 20 | Batch: 200/269 | Loss: 0.1405 | Acc: 86.63%
+2024-12-22 23:38:56,843 [INFO] Epoch 20 | Train Loss: 0.4179 | Train Accuracy: 86.48%
+2024-12-22 23:38:56,844 [INFO] Epoch 20 | Valid Loss: 0.7156 | Valid Accuracy: 74.35% | Valid F1 Score: 0.7408
+2024-12-22 23:38:57,139 [INFO] Current learning rate: 1e-05
+2024-12-22 23:38:57,140 [INFO] 
+Epoch 22/25
+2024-12-22 23:39:45,311 [INFO] Epoch: 21 | Batch: 0/269 | Loss: 0.5756 | Acc: 87.50%
+2024-12-22 23:42:50,606 [INFO] Epoch: 21 | Batch: 100/269 | Loss: 0.4187 | Acc: 88.24%
+2024-12-22 23:45:59,371 [INFO] Epoch: 21 | Batch: 200/269 | Loss: 0.7643 | Acc: 86.01%
+2024-12-22 23:52:50,954 [INFO] Epoch 21 | Train Loss: 0.4150 | Train Accuracy: 87.17%
+2024-12-22 23:52:50,954 [INFO] Epoch 21 | Valid Loss: 0.7096 | Valid Accuracy: 74.35% | Valid F1 Score: 0.7411
+2024-12-22 23:52:51,250 [INFO] Current learning rate: 1e-05
+2024-12-22 23:52:51,251 [INFO] 
+Epoch 23/25
+2024-12-22 23:53:40,660 [INFO] Epoch: 22 | Batch: 0/269 | Loss: 0.2921 | Acc: 100.00%
+2024-12-22 23:56:45,056 [INFO] Epoch: 22 | Batch: 100/269 | Loss: 0.0973 | Acc: 87.50%
+2024-12-22 23:59:48,407 [INFO] Epoch: 22 | Batch: 200/269 | Loss: 0.4471 | Acc: 87.69%
+2024-12-23 00:06:37,655 [INFO] Epoch 22 | Train Loss: 0.4024 | Train Accuracy: 87.08%
+2024-12-23 00:06:37,655 [INFO] Epoch 22 | Valid Loss: 0.7089 | Valid Accuracy: 74.57% | Valid F1 Score: 0.7421
+2024-12-23 00:06:37,945 [INFO] Current learning rate: 1e-05
+2024-12-23 00:06:37,945 [INFO] 
+Epoch 24/25
+2024-12-23 00:07:26,885 [INFO] Epoch: 23 | Batch: 0/269 | Loss: 0.4912 | Acc: 75.00%
+2024-12-23 00:10:27,521 [INFO] Epoch: 23 | Batch: 100/269 | Loss: 0.1702 | Acc: 86.76%
+2024-12-23 00:13:29,981 [INFO] Epoch: 23 | Batch: 200/269 | Loss: 0.6811 | Acc: 87.94%
+2024-12-23 00:20:08,228 [INFO] Epoch 23 | Train Loss: 0.3807 | Train Accuracy: 88.20%
+2024-12-23 00:20:08,229 [INFO] Epoch 23 | Valid Loss: 0.7240 | Valid Accuracy: 73.68% | Valid F1 Score: 0.7342
+2024-12-23 00:20:08,518 [INFO] Current learning rate: 1e-05
+2024-12-23 00:20:08,519 [INFO] 
+Epoch 25/25
+2024-12-23 00:20:55,003 [INFO] Epoch: 24 | Batch: 0/269 | Loss: 0.3386 | Acc: 87.50%
+2024-12-23 00:23:58,806 [INFO] Epoch: 24 | Batch: 100/269 | Loss: 0.2508 | Acc: 88.74%
+2024-12-23 00:27:01,023 [INFO] Epoch: 24 | Batch: 200/269 | Loss: 0.4605 | Acc: 88.87%
+2024-12-23 00:33:40,607 [INFO] Epoch 24 | Train Loss: 0.3915 | Train Accuracy: 88.52%
+2024-12-23 00:33:40,607 [INFO] Epoch 24 | Valid Loss: 0.7056 | Valid Accuracy: 75.09% | Valid F1 Score: 0.7508
+2024-12-23 00:33:41,573 [INFO] Current learning rate: 1e-05
+2024-12-23 00:33:41,574 [INFO] Training completed.

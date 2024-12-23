@@ -1,15 +1,13 @@
 """
-Baseline 5 Description :
+Baseline 7 Description :
 --------------------------------
-This baseline is a temporal extension of B3, 
-where person-specific features pooled over all individuals 
-in each frame are fed to an LSTM model 
-to capture group dynamics.
+Full model V1 train LSTM on crops level (LSTM on a player)  
+extract clips: sequence of 9 steps per player for each frame,
+max pool its players train LSTM 2 on the frame level
 """
 import os
 import sys
 import torch
-import pickle 
 import argparse
 import torch.nn as nn
 import albumentations as A
@@ -25,19 +23,26 @@ class Person_Activity_Temporal_Classifer(nn.Module):
         self.resnet50 = nn.Sequential(
             *list(models.resnet50(weights=models.ResNet50_Weights.DEFAULT).children())[:-1]
         )
-        
-        self.lstm = nn.LSTM(
-                            input_size=2048,
-                            hidden_size=hidden_size,
-                            num_layers=num_layers,
-                            batch_first=True,
-                        )
 
-        self.fc =  nn.Sequential(
+        self.layer_norm = nn.LayerNorm(2048)
+        
+        self.lstm_1 = nn.LSTM(
+            input_size=2048,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+        )
+
+        self.fc = nn.Sequential(
             nn.Linear(hidden_size, 512),
+            nn.LayerNorm(512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(512, num_classes)
+            nn.Linear(512, 256),
+            nn.LayerNorm(256),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(256, num_classes)
         )
     
     def forward(self, x):
@@ -47,54 +52,72 @@ class Person_Activity_Temporal_Classifer(nn.Module):
         x = self.resnet50(x) # (batch * bbox * seq, 2048, 1 , 1)
 
         x = x.view(b*bb, seq, -1) # (batch * bbox, seq, 2048)
-        x, (h , c) = self.lstm(x) # (batch * bbox, seq, hidden_size)
+        x = self.layer_norm(x)
+        x, (h , c) = self.lstm_1(x) # (batch * bbox, seq, hidden_size)
 
         x = x[:, -1, :] # (batch * bbox, hidden_size)
         x = self.fc(x) # (batch * bbox, num_class)  
         
         return x
 
-class Group_Activity_Classifer(nn.Module):
-    def __init__(self, person_feature_extraction, num_classes):
-        super(Group_Activity_Classifer, self).__init__()
+class Group_Activity_Temporal_Classifer(nn.Module):
+    def __init__(self, person_feature_extraction, hidden_size, num_layers, num_classes):
+        super(Group_Activity_Temporal_Classifer, self).__init__()
 
         self.resnet50 = person_feature_extraction.resnet50
-        self.lstm = person_feature_extraction.lstm
+        self.lstm_1 = person_feature_extraction.lstm_1
 
-        for module in [self.resnet50,  self.lstm]:
+        for module in [self.resnet50, self.lstm_1]:
             for param in module.parameters():
                 param.requires_grad = False
-                
-        self.pool = nn.AdaptiveMaxPool2d((1, 2048))  # [Batch, 12, hidden_size] -> [Batch, 1, 2048]
+
+        self.pool = nn.AdaptiveMaxPool2d((1, 2048))
+
+        # Layer normalization for better stability (will be shared through the network)
+        self.layer_norm = nn.LayerNorm(2048)
+        
+        self.lstm_2 = nn.LSTM(
+            input_size=2048,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+        )
         
         self.fc = nn.Sequential(
-            nn.Linear(2048, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(hidden_size, 512),
+            nn.LayerNorm(512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(512, num_classes), 
+            nn.Linear(512, 128),
+            nn.LayerNorm(128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(128, num_classes)
         )
     
     def forward(self, x):
         # x.shape => batch, bbox, frames, channals , hight, width
         b, bb, seq, c, h, w = x.shape # seq => frames
-        x = x.view(b*bb*seq, c, h, w) # (b * bb * seq, c, h, w)
+        x = x.view(b*bb*seq, c, h, w) # (b *bb *seq, c, h, w)
         x1 = self.resnet50(x) # (batch * bbox * seq, 2048, 1 , 1)
 
         x1 = x1.view(b*bb, seq, -1) # (batch * bbox, seq, 2048)
-        x2, (h , c) = self.lstm(x1) # (batch * bbox, seq, hidden_size)
+        x1 = self.layer_norm(x1) # (batch * bbox, seq, 2048)
+        x2, (h_1 , c_1) = self.lstm_1(x1) # (batch * bbox, seq, hidden_size)
 
         x = torch.cat([x1, x2], dim=2) # Concat the Resnet50 representation and LSTM layer for every  
-        x = x.contiguous()             # person and pool over all people in a scene.
-        x = x[:, -1, :]                # (batch * bbox, hidden_size)
-        
-        x = x.view(b, bb, -1) # (batch , bbox, hidden_size)
-        x = self.pool(x) # (batch, 1, 2048)
-        x = x.squeeze(dim=1) # (batch, 2048)
+        x = x.contiguous()             # person and pool over all people in a scene (same as paper).
+       
+        x = x.view(b*seq, bb, -1) # (batch * seq, bbox, hidden_size)
+        x = self.pool(x) # (batch * seq, 1, 2048)
+       
+        x = x.view(b, seq, -1) # (batch, seq, 2048)
+        x = self.layer_norm(x)
+        x, (h_2 , c_2) = self.lstm_2(x) # (batch, seq, hidden_size)
 
-        x = self.fc(x) # (batch, num_class)
+        x = x[:, -1, :] # (batch, hidden_size)
+        x = self.fc(x)  # (batch, num_class)
         return x
-
 
 def person_collate_fn(batch):
     """
@@ -162,26 +185,28 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    with open(person_activity_checkpoint, 'rb') as f:
-        person_activity_checkpoint = pickle.load(f)
-
-    with open(checkpoint_path, 'rb') as f:
-        checkpoint_path = pickle.load(f)
-    
     person_activity_cls = Person_Activity_Temporal_Classifer(
         num_classes=config.model['num_classes']['person_activity'],
         hidden_size=config.model['hyper_param']['person_activity']['hidden_size'],
         num_layers=config.model['hyper_param']['person_activity']['num_layers']
     )
    
-    person_activity_cls.load_state_dict(person_activity_checkpoint['model_state_dict'])    
-   
-    model = Group_Activity_Classifer(
-        person_feature_extraction=person_act_cls, 
-        num_classes=config.model['num_classes']['group_activity']
+    person_activity_cls = load_checkpoint(
+        model=person_activity_cls, 
+        checkpoint_path=person_activity_checkpoint, 
+        device=device, 
+        optimizer=None
     )
-
-    model.load_state_dict(checkpoint_path['model_state_dict'])    
+    
+    model = Group_Activity_Temporal_Classifer(
+        person_feature_extraction=person_act_cls, 
+        num_classes=config.model['num_classes']['group_activity'],
+        hidden_size=config.model['hyper_param']['group_activity']['hidden_size'],
+        num_layers=config.model['hyper_param']['group_activity']['num_layers'], 
+    )
+    
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
    
     model = model.to(device)
 
@@ -198,7 +223,7 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
         videos_path=f"{args.ROOT}/{config.data['videos_path']}",
         annot_path=f"{args.ROOT}/{config.data['annot_path']}",
         split=config.data['video_splits']['test'],
-        labels=group_activity_labels,
+        labels=group_activity_labels, 
         transform=test_transforms,
         crops=True,
         seq=True, 
@@ -207,16 +232,16 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
     test_loader = DataLoader(
         test_dataset,
         batch_size=10,
+        collate_fn=group_collate_fn,
         shuffle=True,
         num_workers=4,
-        collate_fn=group_collate_fn,
         pin_memory=True
     )
     
     criterion = nn.CrossEntropyLoss()
    
-    path = f"{args.ROOT}/modeling/baseline 5/outputs"
-    prefix = "Group Activity Baseline 5 eval on testset"
+    path = f"{args.ROOT}/modeling/baseline 7/outputs"
+    prefix = "Group Activity Baseline 7 eval on testset"
 
     metrics = model_eval(model=model, data_loader=test_loader, criterion=criterion, device=device , path=path, prefix=prefix, class_names=config.model["num_clases_label"]['group_activity'])
 
@@ -224,9 +249,9 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 
 if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
-    MODEL_CONFIG = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B5.yml"    
-    PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_A_V1_2024_12_22_09_43/checkpoint_epoch_8.pkl"
-    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_B_V1_20241222_174053/checkpoint_epoch_31.pkl"
+    MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B7.yml"    
+    PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
+    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_B_V1_2024_12_20_19_06/checkpoint_epoch_21.pkl"
    
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -241,39 +266,41 @@ if __name__ == "__main__":
     config = load_config(args.config_path)
 
     person_act_cls = Person_Activity_Temporal_Classifer(
-        num_classes=config.model['num_classes']['person_activity'],
         hidden_size=config.model['hyper_param']['person_activity']['hidden_size'],
-        num_layers=config.model['hyper_param']['person_activity']['num_layers']
+        num_layers=config.model['hyper_param']['person_activity']['num_layers'],
+        num_classes=config.model['num_classes']['person_activity']
     )
 
-    model = Group_Activity_Classifer(
+    model = Group_Activity_Temporal_Classifer(
         person_feature_extraction=person_act_cls, 
-        num_classes=config.model['num_classes']['group_activity']
+        num_classes=config.model['num_classes']['group_activity'],
+        hidden_size=config.model['hyper_param']['group_activity']['hidden_size'],
+        num_layers=config.model['hyper_param']['group_activity']['num_layers'], 
     )
 
     summary(model)
     eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, GROUP_ACTIVITY_CHECKPOINT_PATH)
     # ==================================================
-    # Group Activity Baseline 5 eval on testset
+    # Group Activity Baseline 7 eval on testset
     # ==================================================
-    # Accuracy : 77.04%
-    # Average Loss: 0.6571
-    # F1 Score (Weighted): 0.7707
+    # Accuracy : 88.71%
+    # Average Loss: 0.4399
+    # F1 Score (Weighted): 0.8877
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.89      0.76      0.82       192
-    #      r_spike       0.92      0.93      0.93       173
-    #       r-pass       0.69      0.67      0.68       210
-    #   r_winpoint       0.45      0.43      0.44        87
-    #   l_winpoint       0.51      0.56      0.54       102
-    #       l-pass       0.73      0.83      0.78       226
-    #      l-spike       0.90      0.92      0.91       179
-    #        l_set       0.84      0.81      0.83       168
+    #        r_set       0.95      0.85      0.90       192
+    #      r_spike       0.95      0.91      0.93       173
+    #       r-pass       0.84      0.96      0.90       210
+    #   r_winpoint       0.65      0.76      0.70        87
+    #   l_winpoint       0.76      0.70      0.73       102
+    #       l-pass       0.94      0.92      0.93       226
+    #      l-spike       0.93      0.93      0.93       179
+    #        l_set       0.93      0.91      0.92       168
 
-    #     accuracy                           0.77      1337
-    #    macro avg       0.74      0.74      0.74      1337
-    # weighted avg       0.77      0.77      0.77      1337
+    #     accuracy                           0.89      1337
+    #    macro avg       0.87      0.87      0.87      1337
+    # weighted avg       0.89      0.89      0.89      1337
 
-    # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 5/outputs/Group_Activity_Baseline_5_eval_on_testset_confusion_matrix.png
+    # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 7/outputs/Group_Activity_Baseline_7_eval_on_testset_confusion_matrix.png

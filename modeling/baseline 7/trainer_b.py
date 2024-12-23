@@ -1,10 +1,3 @@
-"""
-Phase two build group action classifier:
-1. Get all player croups from traget clip (12, 9, 3, 224, 224)
-1. Get player image representation (person activity temporal representation)
-3. MaxPool across all the players temporal representation
-4. Build NN for group action classifier (using temporal player pooled representation)
-"""
 import os
 import sys
 import yaml
@@ -14,19 +7,18 @@ import numpy as np
 import torch.nn as nn
 import albumentations as A
 import torch.optim as optim
-from datetime import datetime
 import torch.multiprocessing as mp
+from datetime import datetime
 from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from model import Group_Activity_Classifer, group_collate_fn, Person_Activity_Temporal_Classifer, person_collate_fn
+from model import Group_Activity_Temporal_Classifer, group_collate_fn, Person_Activity_Temporal_Classifer, person_collate_fn
 
-ROOT = "/kaggle"
+ROOT = "/kaggle/"
 PROJECT_ROOT= "/kaggle/working/Group-Activity-Recognition"
-PERSON_ACTIVITY_CHECKPOINT_PATH = f"{PROJECT_ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_A_V1_2024_12_22_09_43/checkpoint_epoch_8.pkl"
-CONFIG_FILE_PATH = f"{PROJECT_ROOT}/modeling/configs/Baseline B5.yml"
-
+CONFIG_FILE_PATH = f"{PROJECT_ROOT}/modeling/configs/Baseline B7.yml"
+PERSON_ACTIVITY_CHECKPOINT_PATH = f"{PROJECT_ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
 sys.path.append(os.path.abspath(PROJECT_ROOT))
 
 from data_utils import Group_Activity_DataSet, group_activity_labels, Person_Activity_DataSet, person_activity_labels
@@ -141,13 +133,14 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         None, 
         device
     )
-    
-    
-    model = Group_Activity_Classifer(
+      
+    model = Group_Activity_Temporal_Classifer(
         person_feature_extraction=person_act_cls, 
-        num_classes=config.model['num_classes']['group_activity']
+        num_classes=config.model['num_classes']['group_activity'],
+        hidden_size=config.model['hyper_param']['group_activity']['hidden_size'],
+        num_layers=config.model['hyper_param']['group_activity']['num_layers'], 
     )
-    
+
     model = model.to(device)
    
     if config.training['group_activity']['optimizer'] == "AdamW":
@@ -195,20 +188,15 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
          timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M')
        
          exp_dir = os.path.join(
-                f"{PROJECT_ROOT}/modeling/baseline 8/{config.experiment['output_dir']}",
+                f"{PROJECT_ROOT}/modeling/baseline 7/{config.experiment['output_dir']}",
                 f"{config.experiment['name']}_V{config.experiment['version']}_{timestamp}"
             )
          
          os.makedirs(exp_dir, exist_ok=True)
          logger = setup_logging(exp_dir)
-
+        
     logger.info(f"Starting experiment: {config.experiment['name']}_V{config.experiment['version']}")
     writer = SummaryWriter(log_dir=os.path.join(exp_dir, 'tensorboard'))
-
-    logger.info(f"Using optimizer: {config.training['group_activity']['optimizer']}, "
-            f"lr: {config.training['group_activity']['learning_rate']}, "
-            f"momentum: {config.training['group_activity'].get('momentum', 0)}, "
-            f"weight_decay: {config.training['group_activity']['weight_decay']}")
     
     logger.info(f"Using device: {device}")
     
@@ -222,7 +210,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
             A.GaussNoise()
-        ], p=0.55),
+        ], p=0.70),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
@@ -284,19 +272,24 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         pin_memory=True
     )
     
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=config.training['group_activity']['label_smoothing'])
     
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode='min',
         factor=0.1,
-        patience=2,
+        patience=3,
     )
     
     config_save_path = os.path.join(exp_dir, 'config.yml')
     with open(config_save_path, 'w') as f:
         yaml.dump(config, f)
+
+    logger.info(f"Using optimizer: {config.training['group_activity']['optimizer']}, "
+            f"lr: {config.training['group_activity']['learning_rate']}, "
+            f"momentum: {config.training['group_activity'].get('momentum', 0)}, "
+            f"weight_decay: {config.training['group_activity']['weight_decay']}")
     
     logger.info("Starting training...")
     
@@ -308,7 +301,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         )
         
         val_loss, val_acc, val_f1_score = validate_model(
-            model, val_loader, criterion, device, epoch, writer, logger, config.model['num_clases_label']['group_activity']
+            model, val_loader, criterion, device, epoch, writer, logger, config.model["num_clases_label"]["group_activity"]
         )
 
         logger.info(f"Epoch {epoch} | Train Loss: {train_loss:.4f} | Train Accuracy: {train_acc:.2f}%")
@@ -331,5 +324,5 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
 
 if __name__ == "__main__":
     mp.set_start_method('spawn', force=True)
-    RESUME_CHECK_POINT  =  f"{PROJECT_ROOT}/modeling/baseline 5/outputs/Baseline_B5_Step_B_V1_20241222_174053/checkpoint_epoch_24.pkl"
+    RESUME_CHECK_POINT = f"{PROJECT_ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_B_V1_2024_12_20_19_06/checkpoint_epoch_4.pkl"
     train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH, RESUME_CHECK_POINT)
