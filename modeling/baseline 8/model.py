@@ -236,7 +236,7 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=10,
+        batch_size=8,
         collate_fn=group_collate_fn,
         shuffle=True,
         num_workers=4,
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B8.yml"    
     PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
-    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2024_12_21_13_11/checkpoint_epoch_12.pkl"
+    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2024_12_21_13_11/checkpoint_epoch_19.pkl"
    
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -285,3 +285,28 @@ if __name__ == "__main__":
 
     summary(model)
     eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, GROUP_ACTIVITY_CHECKPOINT_PATH)
+    #==================================================
+    # Group Activity Baseline 8 eval on testset
+    # ==================================================
+    # Accuracy : 90.35%
+    # Average Loss: 0.3819
+    # F1 Score (Weighted): 0.9034
+
+    # Classification Report:
+    #               precision    recall  f1-score   support
+
+    #        r_set       0.93      0.84      0.88       192
+    #      r_spike       0.91      0.91      0.91       173
+    #       r-pass       0.87      0.89      0.88       210
+    #   r_winpoint       0.88      0.89      0.88        87
+    #   l_winpoint       0.89      0.91      0.90       102
+    #       l-pass       0.89      0.94      0.92       226     
+    #      l-spike       0.93      0.93      0.93       179
+    #        l_set       0.92      0.90      0.91       168
+
+    #     accuracy                           0.90      1337
+    #    macro avg       0.90      0.90      0.90      1337
+    # weighted avg       0.90      0.90      0.90      1337
+
+    # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 8/outputs/Group_Activity_Baseline_8_eval_on_testset_confusion_matrix.png
+                                                
