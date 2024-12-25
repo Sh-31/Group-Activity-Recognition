@@ -18,7 +18,7 @@ from model import Group_Activity_Temporal_Classifer, group_collate_fn, Person_Ac
 ROOT = "/kaggle/"
 PROJECT_ROOT= "/kaggle/working/Group-Activity-Recognition"
 CONFIG_FILE_PATH = f"{PROJECT_ROOT}/modeling/configs/Baseline B8.yml"
-PERSON_ACTIVITY_CHECKPOINT_PATH = "/kaggle/input/gar-baseline-7/pytorch/v1/1/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
+PERSON_ACTIVITY_CHECKPOINT_PATH = "/kaggle/input/gar-baseline-7/pytorch/v1/1/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
 sys.path.append(os.path.abspath(PROJECT_ROOT))
 
 from data_utils import Group_Activity_DataSet, group_activity_labels, Person_Activity_DataSet, person_activity_labels
@@ -196,13 +196,13 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
          os.makedirs(exp_dir, exist_ok=True)
          logger = setup_logging(exp_dir)
 
+    logger.info(f"Starting experiment: {config.experiment['name']}_V{config.experiment['version']}")
+    writer = SummaryWriter(log_dir=os.path.join(exp_dir, 'tensorboard'))
+
     logger.info(f"Using optimizer: {config.training['group_activity']['optimizer']}, "
             f"lr: {config.training['group_activity']['learning_rate']}, "
             f"momentum: {config.training['group_activity'].get('momentum', 0)}, "
             f"weight_decay: {config.training['group_activity']['weight_decay']}")
-    
-    logger.info(f"Starting experiment: {config.experiment['name']}_V{config.experiment['version']}")
-    writer = SummaryWriter(log_dir=os.path.join(exp_dir, 'tensorboard'))
     
     logger.info(f"Using device: {device}")
     
@@ -216,7 +216,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
             A.GaussNoise()
-        ], p=0.70),
+        ], p=0.90),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
@@ -280,7 +280,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         pin_memory=True
     )
     
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=config.training['group_activity']['label_smoothing'])
     
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -327,5 +327,5 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
 
 if __name__ == "__main__":
     mp.set_start_method('spawn', force=True)
-    RESUME_CHECK_POINT  =  "/kaggle/working/Group-Activity-Recognition/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2024_12_21_13_11/checkpoint_epoch_17.pkl"
+    RESUME_CHECK_POINT  =  f"{PROJECT_ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2024_12_24_14_32/checkpoint_epoch_54.pkl"
     train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH, RESUME_CHECK_POINT)
