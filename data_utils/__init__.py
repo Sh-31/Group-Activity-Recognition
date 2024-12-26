@@ -1,1 +1,9 @@
-from .data_loader import Person_Activity_DataSet, person_activity_labels, Group_Activity_DataSet, group_activity_labels
+from .data_loader import (
+    Person_Activity_DataSet,
+    Group_Activity_DataSet,
+    Hierarchical_Group_Activity_DataSet,
+     person_activity_labels,
+    group_activity_labels,
+    activities_labels
+)
+
