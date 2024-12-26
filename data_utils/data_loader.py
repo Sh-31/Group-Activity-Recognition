@@ -61,7 +61,6 @@ class Person_Activity_DataSet(Dataset):
         self.only_tar = only_tar
         self.labels = labels
        
-        
         # Load annotations but store only metadata
         with open(annot_path, 'rb') as f:
             videos_annot = pickle.load(f)
@@ -113,7 +112,6 @@ class Person_Activity_DataSet(Dataset):
         x_min, y_min, x_max, y_max = box.box
         person_crop = frame[y_min:y_max, x_min:x_max]
         
-       
         if self.transform:
             transformed = self.transform(image=person_crop)
             person_crop = transformed['image']
@@ -264,8 +262,7 @@ class Group_Activity_DataSet(Dataset):
                         'boxes': boxes,
                         'category': category,
                         })    
-                       
-                       
+                                           
                 else:  
                       # when crop and seq are true return a full clip with all player crop with its group label (all the same) ((12, 9, crop frame), tensor(9,8)
                       frame_data = []
@@ -286,7 +283,6 @@ class Group_Activity_DataSet(Dataset):
                             'frames_data':frame_data,
                             'category': category,
                         })      
-
 
     def __len__(self):
         return len(self.data)
@@ -320,7 +316,6 @@ class Group_Activity_DataSet(Dataset):
         else:
             return torch.stack(crops)
                    
-
     def __getitem__(self, idx):
         sample = self.data[idx]
         num_class = len(self.labels)
@@ -391,7 +386,6 @@ class Hierarchical_Group_Activity_DataSet(Dataset):
             annot_path: Path to annotations file
             split: List of clip IDs to use
             labels: Group and Person activity labels dictionary
-            only_tar: Whether to use only target frames
             transform:  transform to apply
         """
         self.videos_path = Path(videos_path)
@@ -427,8 +421,6 @@ class Hierarchical_Group_Activity_DataSet(Dataset):
                     'category': category,
                 })      
       
-
-
     def __len__(self):
         return len(self.data)
     
@@ -463,8 +455,7 @@ class Hierarchical_Group_Activity_DataSet(Dataset):
             person_frame_labels.append(person_label)
         
         return crops, order, person_frame_labels
-        
-                   
+                    
     def __getitem__(self, idx):
         sample = self.data[idx]
         group_num_class = len(self.labels['group'])
