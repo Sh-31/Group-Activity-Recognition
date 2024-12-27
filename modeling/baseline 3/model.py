@@ -85,7 +85,7 @@ def collate_fn(batch):
     
     return padded_clips, padded_labels
 
-def eval(args, person_activity_checkpoint, checkpoint_path):
+def eval(args, checkpoint_path):
 
     sys.path.append(os.path.abspath(args.ROOT))
     
@@ -101,13 +101,6 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
         num_classes=config.model['num_classes']['person_activity']
     )
    
-    person_activity_cls = load_checkpoint(
-        model=person_activity_cls, 
-        checkpoint_path=person_activity_checkpoint, 
-        device=device, 
-        optimizer=None
-    )
-    
     model = Group_Activity_ClassiferNN(
         person_feature_extraction=person_activity_cls, 
         num_classes=config.model['num_classes']['group_activity']
@@ -167,7 +160,6 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B3_step_b.yml"
-    PERSON_ACTIVITY_CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20241127_184841/checkpoint_epoch_0.pkl"
     CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_B_V1_20241205_033204/checkpoint_epoch_2.pkl"
    
     parser = argparse.ArgumentParser()
@@ -186,9 +178,8 @@ if __name__ == "__main__":
     model = Group_Activity_ClassiferNN(person_feature_extraction=person_act_cls, 
                                         num_classes=config.model['num_classes']['group_activity'])
     
-    # summary(model) # Show model details 
-    
-    eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, CHECKPOINT_PATH) # eval model against  testset
+    summary(model) # Show model details 
+    eval(args, CHECKPOINT_PATH) # eval model against  testset
     # ==================================================
     #  Group Activity Baseline 3 eval on testset
     # ==================================================

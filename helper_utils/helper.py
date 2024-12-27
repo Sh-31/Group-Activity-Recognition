@@ -62,8 +62,18 @@ def load_checkpoint(checkpoint_path, model, optimizer, device):
     Returns:
         tuple: (model, optimizer, config, exp_dir, start_epoch)
     """
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+    except Exception as e:
+        try:
+            with open(checkpoint_path, 'rb') as f:
+                checkpoint = pickle.load(f)
+            torch.save(checkpoint, checkpoint_path)    
+        except Exception as pickle_error:
+            raise RuntimeError(
+                f"Failed to load checkpoint using both torch.load and pickle.load: {pickle_error}"
+            ) from pickle_error
+
     model.load_state_dict(checkpoint['model_state_dict'])
 
     if optimizer == None: return model

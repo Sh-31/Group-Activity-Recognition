@@ -95,7 +95,7 @@ def collate_fn(batch):
     
     return padded_clips, labels
 
-def eval(args, person_activity_checkpoint, checkpoint_path):
+def eval(args, checkpoint_path):
 
     sys.path.append(os.path.abspath(args.ROOT))
     from helper_utils import load_config, load_checkpoint
@@ -110,13 +110,6 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
         num_classes=config.model['num_classes']['person_activity'],
     )
    
-    person_act_cls = load_checkpoint(
-        model=person_act_cls, 
-        checkpoint_path=person_activity_checkpoint, 
-        device=device, 
-        optimizer=None
-    )
-
     model = Group_Activity_Classifer_Temporal(
         person_feature_extraction=person_act_cls, 
         hidden_size=config.model['hyper_param']['group_activity']['hidden_size'],
@@ -153,7 +146,7 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=16,
+        batch_size=8,
         collate_fn=collate_fn,
         shuffle=True,
         num_workers=4,
@@ -172,7 +165,6 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 if __name__  == "__main__" :
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B6.yml"    
-    PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20241127_184841/checkpoint_epoch_0.pkl"
     GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 6/outputs/Baseline_B6_V1_20241211_073811/checkpoint_epoch_10.pkl"
    
     parser = argparse.ArgumentParser()
@@ -198,7 +190,7 @@ if __name__  == "__main__" :
     )
 
     summary(model)
-    eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, GROUP_ACTIVITY_CHECKPOINT_PATH)
+    eval(args, GROUP_ACTIVITY_CHECKPOINT_PATH)
     # ==================================================
     # Group Activity Baseline 6 eval on testset
     # ==================================================
