@@ -61,7 +61,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 10 == 0:
+        if batch_idx % 100 == 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -151,7 +151,7 @@ def train_model(config_path):
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
             A.GaussNoise()
-        ], p=0.5),
+        ], p=0.90),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
@@ -223,7 +223,7 @@ def train_model(config_path):
         optimizer,
         mode='min',
         factor=0.1,
-        patience=5,
+        patience=3,
         verbose=True
     )
     

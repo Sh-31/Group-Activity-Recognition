@@ -81,8 +81,8 @@ model:
   - l_set
   num_classes: 8
 training:
-  batch_size: 256
-  epochs: 5
+  batch_size: 32
+  epochs: 10
   learning_rate: 0.0001
   optimizer: AdamW
   weight_decay: 1
