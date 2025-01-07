@@ -1,7 +1,7 @@
 !!python/object:helper_utils.helper.Config
 data:
-  annot_path: data/annot_all.pkl
-  data_dir: data
+  annot_path: input/group-activity-recognition-volleyball/annot_all.pkl
+  data_dir: /kaggle/input/group-activity-recognition-volleyball
   dataset_name: GroupActivityDataset
   video_splits:
     test:
@@ -62,7 +62,7 @@ data:
     - 46
     - 49
     - 51
-  videos_path: data/videos
+  videos_path: input/group-activity-recognition-volleyball/videos
 experiment:
   description: Phase one train person action classifier
   name: Baseline_B3_step_A

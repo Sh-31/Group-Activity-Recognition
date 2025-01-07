@@ -160,8 +160,7 @@ def eval(args, checkpoint_path):
 if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B3_step_b.yml"
-    CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_B_V1_20241205_033204/checkpoint_epoch_2.pkl"
-   
+    CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_B_V1_20250107_001804/checkpoint_epoch_8.pkl"
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
                         help="Path to the root directory of the project")
@@ -180,27 +179,28 @@ if __name__ == "__main__":
     
     summary(model) # Show model details 
     eval(args, CHECKPOINT_PATH) # eval model against  testset
+   
+    #==================================================
+    # Group Activity Baseline 3 eval on testset
     # ==================================================
-    #  Group Activity Baseline 3 eval on testset
-    # ==================================================
-    # Accuracy : 80.15%
-    # Average Loss: 0.5701
-    # F1 Score (Weighted): 0.8014
+    # Accuracy : 80.25%
+    # Average Loss: 0.5982
+    # F1 Score (Weighted): 0.8024
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.80      0.83      0.81      1728
-    #      r_spike       0.89      0.88      0.88      1557
-    #       r-pass       0.79      0.79      0.79      1890
-    #   r_winpoint       0.56      0.48      0.52       783
-    #   l_winpoint       0.60      0.67      0.63       918
-    #       l-pass       0.80      0.88      0.83      2034
-    #      l-spike       0.92      0.85      0.88      1611
-    #        l_set       0.87      0.80      0.84      1512
+    #        r_set       0.86      0.78      0.82      1728
+    #      r_spike       0.90      0.88      0.89      1557
+    #       r-pass       0.74      0.84      0.78      1890
+    #   r_winpoint       0.55      0.52      0.53       783
+    #   l_winpoint       0.63      0.62      0.63       918
+    #       l-pass       0.82      0.82      0.82      2034
+    #      l-spike       0.90      0.89      0.90      1611
+    #        l_set       0.84      0.84      0.84      1512
 
     #     accuracy                           0.80     12033
-    #    macro avg       0.78      0.77      0.77     12033
+    #    macro avg       0.78      0.77      0.78     12033
     # weighted avg       0.80      0.80      0.80     12033
 
     # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Group_Activity_Baseline_3_eval_on_testset_confusion_matrix.png
