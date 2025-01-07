@@ -17,7 +17,7 @@ from model import Person_Activity_Classifer, Group_Activity_Classifer_Temporal, 
 ROOT = "/teamspace/studios/this_studio"
 PROJECT_ROOT= "/teamspace/studios/this_studio/Group-Activity-Recognition"
 CONFIG_FILE_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/configs/Baseline B6.yml"
-PERSON_ACTIVITY_CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20241127_184841/checkpoint_epoch_0.pkl"
+PERSON_ACTIVITY_CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20250106_204340/checkpoint_epoch_0.pkl"
 #PERSON_ACTIVITY_CHECKPOINT_PATH = "/teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 3/outputs/Baseline_B3_step_A_V1_20241127_184841/best_model.pth"
 
 sys.path.append(os.path.abspath(PROJECT_ROOT))
