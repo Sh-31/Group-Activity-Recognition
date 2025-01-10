@@ -195,3 +195,28 @@ When the teams are grouped and processed individually before concatenation, the 
 <img src="modeling/baseline 9 (end to end)/outputs/Group_Activity_Baseline_9_eval_on_testset_confusion_matrix.png" alt="Baseline 9 confusion matrix" width="60%">
 
 --- 
+## Model Architecture: Hierarchical Group Activity Classifier (Baseline 9)
+
+The **Hierarchical Group Activity Classifier** is a deep learning model designed for predicting individual and group activity labels based on video sequences. The architecture is composed of several components including ResNet-50 feature extraction, LSTM layers, and fully connected layers to handle person-level and group-level activity classification.
+
+### Model Overview
+The architecture consists of the following main components:
+
+1. **Feature Extractor (ResNet-50)**  
+   The model uses a pre-trained ResNet-50 model to extract visual features from the input video frames. This feature extractor is modified by removing the final fully connected layers, keeping only the convolutional layers to obtain a 2048-dimensional feature vector per frame.
+
+2. **Person-Level Activity Classifier**  
+   After extracting features using ResNet-50, the model uses an LSTM layer to model temporal dependencies across frames for each person. A fully connected network is used to predict the person-level activity class.
+
+3. **Pooling and Group-Level Activity Classifier**  
+   The extracted features are concatenated from both person-level predictions, and a separate LSTM is used to model group-level activity over all persons. The final output is the predicted group activity class.
+
+**Total Parameters**: 34,159,889  
+**Trainable Parameters**: 34,159,889  
+**Non-Trainable Parameters**: 0
+
+### Training Configuration
+
+- **Training Platform**: The model is trained on Kaggle's free GPU quota (X2 T4 15 RAM GPU) [Notebook](https://www.kaggle.com/code/sherif31/gar-baseline-9).
+- **Optimizer**: Adam optimizer with learning rate scheduling.
+
