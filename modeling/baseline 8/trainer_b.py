@@ -60,7 +60,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 100 == 0:
+        if batch_idx % 100 == 0 and batch_idx != 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -160,7 +160,7 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
     
     start_epoch = 0
     best_val_acc = 0
-    update_optimizer = False
+    update_optimizer = True
 
     if checkpoint_path:
         model, optimizer, loaded_config, exp_dir, start_epoch = load_checkpoint(checkpoint_path, model, optimizer, device)
@@ -327,5 +327,6 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
 
 if __name__ == "__main__":
     mp.set_start_method('spawn', force=True)
-    RESUME_CHECK_POINT  =  f"{PROJECT_ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2024_12_24_14_32/checkpoint_epoch_54.pkl"
+    # /kaggle/working/Group-Activity-Recognition/modeling/
+    RESUME_CHECK_POINT  =  f"{PROJECT_ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2025_01_09_19_29/checkpoint_epoch_46.pkl"
     train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH, RESUME_CHECK_POINT)

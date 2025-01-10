@@ -80,10 +80,15 @@ class Group_Activity_Temporal_Classifer(nn.Module):
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
+            dropout=0.3
         )
         
         self.fc = nn.Sequential(
-            nn.Linear(hidden_size, 256),
+            nn.Linear(hidden_size, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(0.5),
@@ -256,7 +261,7 @@ if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B8.yml"    
     PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
-    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2024_12_24_14_32/checkpoint_epoch_54.pkl"
+    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 8/outputs/Baseline_B8_Step_B_V1_2025_01_09_19_29/checkpoint_epoch_46.pkl"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -288,24 +293,24 @@ if __name__ == "__main__":
     # ==================================================
     # Group Activity Baseline 8 eval on testset
     # ==================================================
-    # Accuracy : 91.25%
-    # Average Loss: 0.5022
-    # F1 Score (Weighted): 0.9124
+    # Accuracy : 91.40%
+    # Average Loss: 0.3854
+    # F1 Score (Weighted): 0.9139
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.95      0.84      0.90       192
-    #      r_spike       0.92      0.92      0.92       173
-    #       r-pass       0.86      0.96      0.91       210
-    #   r_winpoint       0.88      0.89      0.88        87
-    #   l_winpoint       0.87      0.93      0.90       102
-    #       l-pass       0.92      0.92      0.92       226
-    #      l-spike       0.93      0.95      0.94       179
-    #        l_set       0.95      0.88      0.91       168
+    #        r_set       0.96      0.85      0.90       192
+    #      r_spike       0.93      0.93      0.93       173
+    #       r-pass       0.88      0.92      0.90       210
+    #   r_winpoint       0.90      0.84      0.87        87
+    #   l_winpoint       0.86      0.93      0.89       102
+    #       l-pass       0.93      0.95      0.94       226
+    #      l-spike       0.91      0.93      0.92       179
+    #        l_set       0.92      0.92      0.92       168
 
     #     accuracy                           0.91      1337
     #    macro avg       0.91      0.91      0.91      1337
-    # weighted avg       0.91      0.91      0.91      1337
+    # weighted avg       0.92      0.91      0.91      1337
 
     # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 8/outputs/Group_Activity_Baseline_8_eval_on_testset_confusion_matrix.png
