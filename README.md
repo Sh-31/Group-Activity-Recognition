@@ -13,7 +13,6 @@
 <ul align="rigth">
   <li>ResNet50 for feature extraction (replacing AlexNet).</li>
   <li>Ablation studies to analyze model components.</li>
-  <li>Implementation of an end-to-end version (Baseline 9).</li>
   <li>Achieve higher performance across every model baseline compared to the original paper.</li>
   <li>Full implementation in Python (original used Caffe).</li>
 </ul>
@@ -141,9 +140,6 @@ For further information about dataset, you can check out the paper author's repo
 8. **Two-stage Model without LSTM 2:**  
    The full model (V2) trains an LSTM on crop-level data (LSTM on a player). Clips are extracted as sequences of 9 steps per player for each frame. A max-pooling operation is applied to each player's team in a dependent way. Features from both teams are concatenated along the feature dimension, and the result is fed to LSTM 2 at the frame level.
 
-9. **Unified Two-stage Model (Baseline 9):**  
-   In previous baselines, person-level and group-level activity losses were handled independently, resulting in a two-stage model. Baseline 9 combines these processes into a unified, end-to-end training pipeline. This approach allows for the simultaneous optimization of both person-level and group-level activity classification using a shared gradient flow.
-
 ---
 ## Performance comparison
 
@@ -162,7 +158,6 @@ For further information about dataset, you can check out the paper author's repo
 | Baseline 6   | 84.52%       | 83.99%       |
 | Baseline 7   | 88.71%       | 88.77%       |
 | Baseline 8   | 91.40%       | 91.39%       |
-| Baseline 9   | 98.47%       | 98.47%       |
 
 ---
 
@@ -186,37 +181,42 @@ The following confusion matrices from Baseline 5 and Baseline 6 reveal some inte
 
 This behavior is likely due to the pooling of the 12 players from both teams when transitioning from the individual/personal level to the frame/group level. By grouping all players into one unit, the model loses valuable geometric information regarding player positions. 
 
-When the teams are grouped and processed individually before concatenation, the player position information is retained. This suggests that a more careful handling of player positions could improve model performance, as observed in Baseline 8 and Baseline 9.
+When the teams are grouped and processed individually before concatenation, the player position information is retained. This suggests that a more careful handling of player positions could improve model performance, as observed in Baseline 8.
 
 #### Baseline 8 Confusion Matrix
 <img src="modeling/baseline%208/outputs/Group_Activity_Baseline_8_eval_on_testset_confusion_matrix.png" alt="Baseline 8 confusion matrix" width="60%">
 
-#### Baseline 9 Confusion Matrix
-<img src="modeling/baseline 9 (end to end)/outputs/Group_Activity_Baseline_9_eval_on_testset_confusion_matrix.png" alt="Baseline 9 confusion matrix" width="60%">
-
 --- 
-## Model Architecture: Hierarchical Group Activity Classifier (Baseline 9)
+### Model Architecture (Baseline 8)
 
-The **Hierarchical Group Activity Classifier** is a deep learning model designed for predicting individual and group activity labels based on video sequences. The architecture is composed of several components including ResNet-50 feature extraction, LSTM layers, and fully connected layers to handle person-level and group-level activity classification.
+The baseline model architecture for temporal group activity classification is designed to integrate individual player features and team-level dynamics over time. This section provides a detailed description of the components and processing stages of the model.
 
-### Model Overview
-The architecture consists of the following main components:
+#### **1. Overview**
+The model operates in two primary stages:
+1. **Player-Level Feature Extraction**: Individual player features are extracted and processed over time using ResNet-50 and LSTM.
+2. **Team-Level Feature Integration**: Features from both teams are aggregated and processed further using a second LSTM to classify the group activity.
 
-1. **Feature Extractor (ResNet-50)**  
-   The model uses a pre-trained ResNet-50 model to extract visual features from the input video frames. This feature extractor is modified by removing the final fully connected layers, keeping only the convolutional layers to obtain a 2048-dimensional feature vector per frame.
+#### **2. Player Activity Temporal Classifier**
+The `Person_Activity_Temporal_Classifier` is responsible for extracting features for individual players from input sequences of video frames. It consists of the following components:
 
-2. **Person-Level Activity Classifier**  
-   After extracting features using ResNet-50, the model uses an LSTM layer to model temporal dependencies across frames for each person. A fully connected network is used to predict the person-level activity class.
+- **ResNet-50 Backbone**: Pretrained ResNet-50 (excluding the final fully connected layer) is used to extract spatial features for each player from image crops.
+- **Layer Normalization**: Applied to stabilize and normalize the extracted features.
+- **Temporal Modeling with LSTM**: An LSTM processes the sequence of features for each player, capturing temporal dependencies.
+- **Fully Connected Layers**: A series of dense layers map the LSTM outputs to the target activity classes.
 
-3. **Pooling and Group-Level Activity Classifier**  
-   The extracted features are concatenated from both person-level predictions, and a separate LSTM is used to model group-level activity over all persons. The final output is the predicted group activity class.
+#### **3. Group Activity Temporal Classifier**
+The `Group_Activity_Temporal_Classifier` extends the player-level classifier to incorporate team-level dynamics:
 
-**Total Parameters**: 34,159,889  
-**Trainable Parameters**: 34,159,889  
-**Non-Trainable Parameters**: 0
+- **Shared ResNet-50 and LSTM**: The ResNet-50 and LSTM from the `Person_Activity_Temporal_Classifier` are shared, with frozen parameters to leverage pretrained weights.
+- **Pooling and Feature Concatenation**:
+  - ResNet-50 and LSTM outputs for individual players are concatenated along the feature dimension.
+  - Features are grouped into two teams (e.g., players 1–6 for Team 1 and players 7–12 for Team 2).
+  - An adaptive max-pooling layer aggregates player features within each team.
+  - Features from both teams are concatenated.
+- **Team-Level LSTM**: A second LSTM processes the concatenated team-level features over time, capturing temporal dependencies between team interactions.
+- **Classification Layers**: Fully connected layers map the LSTM outputs to the final group activity class.
 
 ### Training Configuration
 
-- **Training Platform**: The model is trained on Kaggle's free GPU quota (X2 T4 15 RAM GPU) [Notebook](https://www.kaggle.com/code/sherif31/gar-baseline-9).
+- **Training Platform**: The model is trained on Kaggle's free GPU quota (P100 16 RAM GPU) [Notebook](https://www.kaggle.com/code/ahmedai31/gar-baseline-8).
 - **Optimizer**: Adam optimizer with learning rate scheduling.
-

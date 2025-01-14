@@ -170,7 +170,7 @@ def eval(args, checkpoint_path):
     test_dataset = Hierarchical_Group_Activity_DataSet(
         videos_path=f"{args.ROOT}/{config.data['videos_path']}",
         annot_path=f"{args.ROOT}/{config.data['annot_path']}",
-        split=config.data['video_splits']['train'],
+        split=config.data['video_splits']['test'],
         labels=activities_labels,
         transform=test_transforms,
     )
@@ -271,24 +271,24 @@ if __name__ == "__main__":
     # ==================================================
     # Group Activity Baseline 9 eval on testset
     # ==================================================
-    # Accuracy : 98.47%
-    # Average Loss: 0.3502
-    # F1 Score (Weighted): 0.9847
+    # Accuracy : 85.42%
+    # Average Loss: 0.7343
+    # F1 Score (Weighted): 0.8541
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.99      0.98      0.98       283
-    #      r_spike       0.98      0.98      0.98       261
-    #       r-pass       0.99      0.98      0.98       353
-    #   r_winpoint       1.00      0.99      1.00       123
-    #   l_winpoint       1.00      0.99      1.00       161
-    #       l-pass       0.98      0.99      0.98       378
-    #      l-spike       0.97      0.99      0.98       289
-    #        l_set       0.99      0.98      0.98       304
+    #        r_set       0.85      0.79      0.82       192
+    #      r_spike       0.92      0.86      0.89       173
+    #       r-pass       0.84      0.84      0.84       210
+    #   r_winpoint       0.77      0.82      0.79        87
+    #   l_winpoint       0.82      0.75      0.79       102
+    #       l-pass       0.88      0.91      0.89       226
+    #      l-spike       0.92      0.90      0.91       179
+    #        l_set       0.79      0.90      0.84       168
 
-    #     accuracy                           0.98      2152
-    #    macro avg       0.99      0.99      0.99      2152
-    # weighted avg       0.98      0.98      0.98      2152
+    #     accuracy                           0.85      1337
+    #    macro avg       0.85      0.85      0.85      1337
+    # weighted avg       0.86      0.85      0.85      1337
 
     # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 9 (end to end)/outputs/Group_Activity_Baseline_9_eval_on_testset_confusion_matrix.png
