@@ -130,18 +130,18 @@ For further information about dataset, you can check out the paper author's repo
    A temporal model that uses image features per clip. Each clip consists of 9 frames, and an LSTM is trained on sequences of 9 steps for each clip.
 
 - **B5: Temporal Model with Person Features:**  
-   A temporal extension of the previous baseline (B3), where person-specific features pooled over all individuals in each frame are fed to an LSTM model to capture group dynamics.
+   A temporal extension of the previous baseline (B3) temporal on crops (LSTM on player level), where person-specific features pooled over all individuals to recognize group activities.
 
-- **B6: Temporal Model with Person Features (B5):**  
-  Individual features pooled over all people are fed into an LSTM model to recognize group activities.
+- **B6: Two-stage Model without LSTM 1:**  
+  Individual features pooled over all people are fed into an LSTM model to capture group dynamics.
 
-- **B7: Two-stage Model without LSTM 1:**  
+- **B7: Two-stage Model without LSTM 2:**  
    The full model (V1) trains an LSTM on crop-level data (LSTM on a player level). Clips are extracted: sequences of 9 steps per player for each frame. A max-pooling operation is applied to the players, and LSTM 2 is trained on the frame level.
 
-- **B8: Two-stage Model without LSTM 2:**  
-   The full model (V2) trains an LSTM on crop-level data (LSTM on a player). Clips are extracted as sequences of 9 steps per player for each frame. A max-pooling operation is applied to each player's team in a dependent way. Features from both teams are concatenated along the feature dimension, and the result is fed to LSTM 2 at the frame level.
+- **B8: Two-stage Hierarchical Model:**  
+   The full model (V2) trains an LSTM on crop-level data (LSTM on a player level). Clips are extracted as sequences of 9 steps per player for each frame. A max-pooling operation is applied to each player's team in a dependent way. Features from both teams are concatenated along the feature dimension, and the result is fed to LSTM 2 at the frame level.
 
-- **B9: Unified Two-stage Model (Baseline 9):**  
+- **B9: Unified Hierarchical Model:**  
    In earlier baselines, person-level and group-level activity losses were addressed independently, leading to a two-stage model. Baseline 9 integrates these processes into a unified, end-to-end training pipeline. This approach enables simultaneous optimization of both person-level and group-level activity classification through a shared gradient flow. Additionally, Baseline 9 employs `ResNet34` instead of `ResNet50` and `GUR` instead of `LSTM`, **reducing model complexity and mitigating the risk of overfitting**.
 
 ---
@@ -203,7 +203,7 @@ The baseline model architecture for temporal group activity classification is de
 1. **Player-Level Feature Extraction**: Individual player features are extracted and processed over time using ResNet-50 and LSTM.
 2. **Team-Level Feature Integration**: Features from both teams are aggregated and processed further using a second LSTM to classify the group activity.
 
-#### **2. Player Activity Temporal Classifier**
+#### **1. Player Activity Temporal Classifier**
 The `Person_Activity_Temporal_Classifier` is responsible for extracting features for individual players from input sequences of video frames. It consists of the following components:
 
 - **ResNet-50 Backbone**: Pretrained ResNet-50 (excluding the final fully connected layer) is used to extract spatial features for each player from image crops.
@@ -211,7 +211,7 @@ The `Person_Activity_Temporal_Classifier` is responsible for extracting features
 - **Temporal Modeling with LSTM**: An LSTM processes the sequence of features for each player, capturing temporal dependencies.
 - **Fully Connected Layers**: A series of dense layers map the LSTM outputs to the target activity classes.
 
-#### **3. Group Activity Temporal Classifier**
+#### **2. Group Activity Temporal Classifier**
 The `Group_Activity_Temporal_Classifier` extends the player-level classifier to incorporate team-level dynamics:
 
 - **Shared ResNet-50 and LSTM**: The ResNet-50 and LSTM from the `Person_Activity_Temporal_Classifier` are shared, with frozen parameters to leverage pretrained weights.
@@ -236,8 +236,7 @@ The `Group_Activity_Temporal_Classifier` extends the player-level classifier to 
 The `Hierarchical_Group_Activity_Classifier`  combines spatial feature extraction, temporal modeling, and hierarchical aggregation to provide predictions at both the individual and group levels.
 
 1. **Feature Extraction**: 
-   - A pretrained ResNet-34 extracts spatial features from individual video frames, leveraging its robust ability to process image data. The output feature map is reshaped for further processing.
-
+   - A pretrained ResNet-34 extracts spatial features from individual video frames.
 2. **Individual-Level Classification**:
    - Extracted features are normalized (`Layer Normalization`) and passed through a Gated Recurrent Unit (GRU) to capture temporal dependencies for each bounding box across frames.
    - The temporal output is classified into individual activity classes using a fully connected network comprising multiple layers with normalization, activation, and dropout.
