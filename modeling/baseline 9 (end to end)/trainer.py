@@ -20,7 +20,7 @@ from model import Hierarchical_Group_Activity_Classifer, collate_fn
 
 ROOT = "/kaggle"
 PROJECT_ROOT = "/kaggle/working/Group-Activity-Recognition"
-CHECK_POINT = "/kaggle/working/Group-Activity-Recognition/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_04_10_09/checkpoint_epoch_21.pkl"
+# CHECK_POINT = "/kaggle/working/Group-Activity-Recognition/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_04_10_09/checkpoint_epoch_21.pkl"
 CONFIG_FILE_PATH = f'{PROJECT_ROOT}/modeling/configs/Baseline B9.yml'
 
 sys.path.append(os.path.abspath(PROJECT_ROOT))
@@ -64,7 +64,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
             outputs = model(inputs)
             loss_1 = criterion(outputs['person_output'], person_labels)
             loss_2 = criterion(outputs['group_output'], group_labels)
-            loss = loss_2 + (0.25 * loss_1)
+            loss = (0.70 * loss_2) + (0.30 * loss_1)
         
         scaler.scale(loss).backward()
         scaler.step(optimizer)
@@ -84,16 +84,14 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         
         if batch_idx % 100 == 0 and batch_idx != 0:
             # Synchronize metrics across processes
-            loss_tensor = torch.tensor(total_loss, device=device)
             correct_tensor = torch.tensor(correct, device=device)
             total_tensor = torch.tensor(total, device=device)
             
-            dist.all_reduce(loss_tensor, op=dist.ReduceOp.SUM)
             dist.all_reduce(correct_tensor, op=dist.ReduceOp.SUM)
             dist.all_reduce(total_tensor, op=dist.ReduceOp.SUM)
             
             if rank == 0:
-                avg_loss = loss_tensor.item() / (batch_idx + 1)
+                avg_loss = total_loss / (batch_idx + 1)
                 accuracy = 100. * correct_tensor.item() / total_tensor.item()
                 
                 step = epoch * len(train_loader) + batch_idx
@@ -106,15 +104,13 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         
         dist.barrier()
     
-    loss_tensor = torch.tensor(total_loss, device=device)
     correct_tensor = torch.tensor(correct, device=device)
     total_tensor = torch.tensor(total, device=device)
     
-    dist.all_reduce(loss_tensor, op=dist.ReduceOp.SUM)
     dist.all_reduce(correct_tensor, op=dist.ReduceOp.SUM)
     dist.all_reduce(total_tensor, op=dist.ReduceOp.SUM)
     
-    epoch_loss = loss_tensor.item() / len(train_loader)
+    epoch_loss = total_loss / len(train_loader)
     epoch_acc = 100. * correct_tensor.item() / total_tensor.item()
     
     if rank == 0:
@@ -142,7 +138,7 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
             loss_1 = criterion(outputs['person_output'], person_labels)
             loss_2 = criterion(outputs['group_output'], group_labels)
             
-            loss = loss_2 + (0.25 * loss_1)
+            loss = (0.70 * loss_2) + (0.30 * loss_1)
             
             total_loss += loss.item()
             
@@ -187,7 +183,7 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
         num_layers=config.model['hyper_param']['num_layers']
     ).to(device)
 
-    # model = DDP(model, device_ids=[rank])
+    model = DDP(model, device_ids=[rank])
 
     if config.training['optimizer'] == "AdamW":
         optimizer = optim.AdamW(
@@ -210,7 +206,7 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
             checkpoint_path, model, optimizer, device
         )
         
-        model = DDP(model, device_ids=[rank])
+        # model = DDP(model, device_ids=[rank])
     
         logger = setup_logging(exp_dir) if rank == 0 else None
     else:
@@ -244,16 +240,19 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
             A.GaussianBlur(blur_limit=(3, 7)),
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
-            A.GaussNoise()
+            A.GaussNoise(),
+            A.MotionBlur(blur_limit=5), 
+            A.MedianBlur(blur_limit=5)  
         ], p=0.90),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
-        ], p=0.05),
+            A.RandomRotate90()
+        ], p=0.15),
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ToTensorV2()
     ])
-
+    
     val_transforms = A.Compose([
         A.Resize(224, 224),
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
@@ -358,7 +357,7 @@ def main():
     world_size = torch.cuda.device_count()
     mp.spawn(
         train_model_ddp,
-        args=(world_size, CONFIG_FILE_PATH, CHECK_POINT),
+        args=(world_size, CONFIG_FILE_PATH),
         nprocs=world_size,
         join=True
     )

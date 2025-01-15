@@ -20,77 +20,80 @@ class Hierarchical_Group_Activity_Classifer(nn.Module):
     def __init__(self, person_num_classes, group_num_classes, hidden_size, num_layers):
         super(Hierarchical_Group_Activity_Classifer, self).__init__()
 
-        self.feature_extractor = nn.Sequential(*list(models.resnet50(weights=models.ResNet50_Weights.DEFAULT).children())[:-1])
+        self.feature_extractor = nn.Sequential(
+            *list(models.resnet34(weights=models.ResNet34_Weights.DEFAULT).children())[:-1]
+        )
+        self.layer_norm_1 = nn.LayerNorm(512)
         
-        self.layer_norm_1 = nn.LayerNorm(2048)
-        
-        self.lstm_1 = nn.LSTM(
-            input_size=2048,
+        self.gru_1 = nn.GRU(
+            input_size=512,
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
+            dropout=0.5
         )
 
         self.fc_1 = nn.Sequential(
-            nn.Linear(hidden_size, 128),
+            nn.Linear(hidden_size, 256),
+            nn.LayerNorm(256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, 128),
             nn.LayerNorm(128),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(128, 64),
-            nn.LayerNorm(64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, person_num_classes)
+            nn.Linear(128, person_num_classes)
         )
 
-        self.layer_norm_2 = nn.LayerNorm(2048)
-        self.pool = nn.AdaptiveMaxPool2d((1, 1024))
+        self.layer_norm_2 = nn.LayerNorm(512)
+        self.pool = nn.AdaptiveMaxPool2d((1, 256))
      
-        self.lstm_2 = nn.LSTM(
-            input_size=2048,
+        self.gru_2 = nn.GRU(
+            input_size=512,
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
+            dropout=0.5
         )
         
         self.fc_2 = nn.Sequential(
-            nn.Linear(hidden_size, 128),
+            nn.Linear(hidden_size, 256),
+            nn.LayerNorm(256),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, 128),
             nn.LayerNorm(128),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(128, 64),
-            nn.LayerNorm(64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, group_num_classes)
+            nn.Linear(128, group_num_classes)
         )
     
     def forward(self, x):
         # x.shape => batch, bbox, frames, channals , hight, width
         b, bb, seq, c, h, w = x.shape  # seq => frames
         x = x.view(b*bb*seq, c, h, w)  # (b * bb * seq, c, h, w)
-        x1 = self.feature_extractor(x) # (batch * bbox * seq, 2048, 1 , 1)
+        x1 = self.feature_extractor(x) # (batch * bbox * seq, 512, 1 , 1)
 
-        x1 = x1.view(b*bb, seq, -1)       # (batch * bbox, seq, 2048)
-        x1 = self.layer_norm_1(x1)          # (batch * bbox, seq, 2048)
-        x2, (h_1 , c_1) = self.lstm_1(x1) # (batch * bbox, seq, hidden_size)
+        x1 = x1.view(b*bb, seq, -1)       # (batch * bbox, seq, 512)
+        x1 = self.layer_norm_1(x1)          # (batch * bbox, seq, 512)
+        x2, (h_1 , c_1) = self.gru_1(x1) # (batch * bbox, seq, hidden_size)
 
         y1 = self.fc_1(x2[:, -1, :])  # (batch, person_num_classes)
 
-        x = torch.cat([x1, x2], dim=2) # Concat the Resnet50 representation and LSTM layer for every  
+        x = torch.cat([x1, x2], dim=2) # Concat the Resnet34 representation and LSTM layer for every  
         x = x.contiguous()             # person and pool over all people in a scene (same as paper).
        
         x = x.view(b*seq, bb, -1) # (batch * seq, bbox, hidden_size)
         team_1 = x[:, :6, :]      # (batch * seq, 6, hidden_size)
         team_2 = x[:, 6:, :]      # (batch * seq, 6, hidden_size)
 
-        team_1 = self.pool(team_1) # (batch * seq, 1, 1024)
-        team_2 = self.pool(team_2) # (batch * seq, 1, 1024)
-        x = torch.cat([team_1, team_2], dim=1)  # (batch * seq, 2, 1024)
+        team_1 = self.pool(team_1) # (batch * seq, 1, 256)
+        team_2 = self.pool(team_2) # (batch * seq, 1, 256)
+        x = torch.cat([team_1, team_2], dim=1)  # (batch * seq, 2, 256)
        
-        x = x.view(b, seq, -1) # (batch, seq, 2048)
-        x = self.layer_norm_2(x) # (batch, seq, 2048)
-        x, (h_2 , c_2) = self.lstm_2(x) # (batch, seq, hidden_size)
+        x = x.view(b, seq, -1) # (batch, seq, 512)
+        x = self.layer_norm_2(x) # (batch, seq, 512)
+        x, (h_2 , c_2) = self.gru_2(x) # (batch, seq, hidden_size)
 
         x = x[:, -1, :]     # (batch, hidden_size)
         y2 = self.fc_2(x)   # (batch, group_num_classes)
@@ -176,7 +179,7 @@ def eval(args, checkpoint_path):
     )
     test_loader = DataLoader(
         test_dataset,
-        batch_size=8,
+        batch_size=10,
         collate_fn=collate_fn,
         shuffle=True,
         num_workers=4,
@@ -203,7 +206,7 @@ def eval(args, checkpoint_path):
             loss_1 = criterion(outputs['person_output'], person_labels)
             loss_2 = criterion(outputs['group_output'], group_labels)
             
-            loss = loss_2 + (0.25 * loss_1)
+            loss = (0.70 * loss_2) + (0.30 * loss_1)
             
             total_loss += loss.item()
             
@@ -245,7 +248,7 @@ def eval(args, checkpoint_path):
 if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B9 (end to end).yml"   
-    CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_04_10_09/checkpoint_epoch_26.pkl"
+    CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_15_00_32/checkpoint_epoch_35.pkl"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -271,24 +274,24 @@ if __name__ == "__main__":
     # ==================================================
     # Group Activity Baseline 9 eval on testset
     # ==================================================
-    # Accuracy : 85.42%
-    # Average Loss: 0.7343
-    # F1 Score (Weighted): 0.8541
+    # Accuracy : 91.92%
+    # Average Loss: 0.4514
+    # F1 Score (Weighted): 0.9192
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.85      0.79      0.82       192
-    #      r_spike       0.92      0.86      0.89       173
-    #       r-pass       0.84      0.84      0.84       210
-    #   r_winpoint       0.77      0.82      0.79        87
-    #   l_winpoint       0.82      0.75      0.79       102
-    #       l-pass       0.88      0.91      0.89       226
-    #      l-spike       0.92      0.90      0.91       179
-    #        l_set       0.79      0.90      0.84       168
+    #        r_set       0.91      0.86      0.88       192
+    #      r_spike       0.94      0.92      0.93       173
+    #       r-pass       0.89      0.94      0.91       210
+    #   r_winpoint       0.94      0.95      0.95        87
+    #   l_winpoint       0.96      0.97      0.97       102
+    #       l-pass       0.95      0.93      0.94       226
+    #      l-spike       0.90      0.92      0.91       179
+    #        l_set       0.88      0.90      0.89       168
 
-    #     accuracy                           0.85      1337
-    #    macro avg       0.85      0.85      0.85      1337
-    # weighted avg       0.86      0.85      0.85      1337
+    #     accuracy                           0.92      1337
+    #    macro avg       0.92      0.92      0.92      1337
+    # weighted avg       0.92      0.92      0.92      1337
 
     # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 9 (end to end)/outputs/Group_Activity_Baseline_9_eval_on_testset_confusion_matrix.png

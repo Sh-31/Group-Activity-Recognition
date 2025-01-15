@@ -76,7 +76,7 @@ experiment:
 model:
   hyper_param:
     hidden_size: 512
-    num_layers: 1
+    num_layers: 2
   num_clases_label:
     group_activity:
     - r_set
@@ -101,9 +101,9 @@ model:
     group_activity: 8
     person_activity: 9
 training:
-  batch_size: 2
-  epochs: 45
+  batch_size: 4
+  epochs: 40
   label_smoothing: 0.15
-  learning_rate: 0.0004
+  learning_rate: 5.0e-05
   optimizer: AdamW
-  weight_decay: 0.001
+  weight_decay: 1
