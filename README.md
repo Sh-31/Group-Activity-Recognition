@@ -5,18 +5,38 @@
 <h1 align="center">Group Activity Recognition</h1>
 
 <p align="center">
-  A modern implementation of the CVPR 2016 paper, <em>"A Hierarchical Deep Temporal Model for Group Activity Recognition."</em> 
+  A modern implementation of the <strong>CVPR 2016 paper</strong>, <a href="https://arxiv.org/pdf/1607.02643"><em>A Hierarchical Deep Temporal Model for Group Activity Recognition</em></a>.  
   This model employs a two-stage LSTM architecture to recognize group activities by capturing both individual and group-level temporal dynamics.
 </p>
 
-<p align="rigth"><strong>Key updates include:</strong></p>
-<ul align="rigth">
-  <li>ResNet50 for feature extraction (replacing AlexNet).</li>
-  <li>Ablation studies to analyze model components.</li>
-  <li>Implementation of an end-to-end version (Baseline 9).</li>
-  <li>Achieve higher performance across every model baseline compared to the original paper.</li>
-  <li>Full implementation in Python (original used Caffe).</li>
-</ul>
+## Table of Contents
+1. [Key Updates](#key-updates)
+2. [Usage](#usage)
+   - [Clone the Repository](#1-clone-the-repository)
+   - [Install Dependencies](#2-install-the-required-dependencies)
+   - [Download Model Checkpoint](#3-download-the-model-checkpoint)
+3. [Dataset Overview](#dataset-overview)
+   - [Example Annotations](#example-annotations)
+   - [Train-Test Split](#train-test-split)
+   - [Dataset Statistics](#dataset-statistics)
+   - [Dataset Organization](#dataset-organization)
+   - [Dataset Download Instructions](#dataset-download-instructions)
+4. [Ablation Study](#ablation-study)
+   - [Baselines](#baselines)
+5. [Performance Comparison](#performance-comparison)
+   - [Original Paper Baselines Score](#original-paper-baselines-score)
+   - [My Scores (Accuracy and F1 Scores)](#my-scores-accuracy-and-f1-scores)
+6. [Interesting Observations](#interesting-observations)
+   - [Effect of Team Independent Pooling](#effect-of-team-independent-pooling)
+7. [Model Architecture](#model-architecture-baseline-8)
+
+## Key Updates
+
+- ResNet50 for feature extraction (replacing AlexNet).
+- Ablation studies to analyze model components.
+- Implementation of an end-to-end version (Baseline 9).
+- Achieve higher performance across every model baseline compared to the original paper.
+- Full implementation in Python (original used Caffe).
 
 -----
 ## Usage
@@ -149,7 +169,7 @@ For further information about dataset, you can check out the paper author's repo
 
 ### Original Paper Baselines Score
 
-![Original Paper Scores](https://github.com/user-attachments/assets/591cd10d-d767-4868-847b-727c9292f435)
+![{83C0D210-27DA-4A7F-8126-D9407823B766}](https://github.com/user-attachments/assets/c62ee368-8027-4e83-a5a4-687b7adebe5a)
 
 ### My Scores (Accuracy and F1 Scores)
 
