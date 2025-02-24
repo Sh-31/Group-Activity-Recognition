@@ -245,7 +245,7 @@ The `Group_Activity_Temporal_Classifier` extends the player-level classifier to 
 
 #### Training Configuration
 
-- **Training Platform**: The model is trained on Kaggle's free GPU quota (P100 16 RAM GPU) [Notebook](https://www.kaggle.com/code/ahmedai31/gar-baseline-8).
+- **Training Platform**: The model is trained on Kaggle's free GPU quota (P100 16 RAM GPU) [Notebook](https://www.kaggle.com/code/sherif31/gar-baseline-8).
 - **Optimizer**: AdamW optimizer with learning rate scheduling.
 - **Batch Size:** 8
                   
@@ -272,6 +272,6 @@ The `Hierarchical_Group_Activity_Classifier`  combines spatial feature extractio
 
 #### Training Configuration
 
-- **Training Platform**: The model is trained on Kaggle's free GPU quota (X2 T4 15 RAM GPU) [Notebook](https://www.kaggle.com/code/ahmedai31/gar-baseline-9).
+- **Training Platform**: The model is trained on Kaggle's free GPU quota (X2 T4 15 RAM GPU) [Notebook](https://www.kaggle.com/code/sherif31/gar-baseline-9-22af56).
 - **Optimizer**: AdamW optimizer with learning rate scheduling.
 - **Batch Size:** 8
