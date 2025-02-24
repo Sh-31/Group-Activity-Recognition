@@ -3,18 +3,19 @@
 model:
   num_classes: 8 
   input_size: 2048 # this need be fixed
-  hidden_size: 128
+  hidden_size: 512
   num_layers: 1
   num_clases_label:  ["r_set", "r_spike" , "r-pass", "r_winpoint", "l_winpoint", "l-pass", "l-spike", "l_set"]
 
 training:
   batch_size: 
-    train: 32
+    train: 16
     val: 32
-  learning_rate: 0.0002 # 2e-4
-  epochs: 25
+  learning_rate: 0.0001 # 1e-4
+  epochs: 35
   optimizer: "AdamW"
-  weight_decay: 1 # 1
+  weight_decay: 1 
+  label_smoothing: 0.15 
 
 data:
   dataset_name: "GroupActivityDataset"

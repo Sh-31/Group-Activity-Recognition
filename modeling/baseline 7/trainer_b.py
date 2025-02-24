@@ -15,10 +15,10 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from model import Group_Activity_Temporal_Classifer, group_collate_fn, Person_Activity_Temporal_Classifer, person_collate_fn
 
-ROOT = "/kaggle/"
+ROOT = "/kaggle"
 PROJECT_ROOT= "/kaggle/working/Group-Activity-Recognition"
 CONFIG_FILE_PATH = f"{PROJECT_ROOT}/modeling/configs/Baseline B7.yml"
-PERSON_ACTIVITY_CHECKPOINT_PATH = f"{PROJECT_ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
+PERSON_ACTIVITY_CHECKPOINT_PATH = f"/kaggle/input/group-activity-recognition/pytorch/v1/1/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
 sys.path.append(os.path.abspath(PROJECT_ROOT))
 
 from data_utils import Group_Activity_DataSet, group_activity_labels, Person_Activity_DataSet, person_activity_labels
@@ -60,7 +60,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 100 == 0:
+        if batch_idx % 100 == 0 and batch_idx != 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -209,12 +209,21 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
             A.GaussianBlur(blur_limit=(3, 7)),
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
-            A.GaussNoise()
-        ], p=0.70),
+            A.GaussNoise(),
+            A.MotionBlur(blur_limit=5), 
+            A.MedianBlur(blur_limit=5)  
+        ], p=0.75),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
+            A.RandomRotate90()
         ], p=0.05),
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ToTensorV2()
+    ])
+
+    val_transforms = A.Compose([
+        A.Resize(224, 224),
         A.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225]
@@ -272,7 +281,18 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         pin_memory=True
     )
     
-    criterion = nn.CrossEntropyLoss(label_smoothing=config.training['group_activity']['label_smoothing'])
+    total_samples = len(train_dataset)
+    labels = [label.argmax().item() for batch in train_loader for label in batch[1]]
+    class_counts = torch.bincount(torch.tensor(labels))
+    class_weights = total_samples / (len(class_counts) * class_counts)
+    class_weights = class_weights / class_weights.sum()  
+
+    class_weights = class_weights.to(device)
+    
+    criterion = nn.CrossEntropyLoss(
+        label_smoothing=config.training['group_activity']['label_smoothing'],
+        weight=class_weights
+    )
     
     scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -303,11 +323,10 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
         val_loss, val_acc, val_f1_score = validate_model(
             model, val_loader, criterion, device, epoch, writer, logger, config.model["num_clases_label"]["group_activity"]
         )
-
+        scheduler.step(val_loss)
+        
         logger.info(f"Epoch {epoch} | Train Loss: {train_loss:.4f} | Train Accuracy: {train_acc:.2f}%")
         logger.info(f"Epoch {epoch} | Valid Loss: {val_loss:.4f} | Valid Accuracy: {val_acc:.2f}% | Valid F1 Score: {val_f1_score:.4f}")
-        
-        scheduler.step(val_loss)
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -324,5 +343,5 @@ def train_model(config_path, person_activity_checkpoint_path, checkpoint_path=No
 
 if __name__ == "__main__":
     mp.set_start_method('spawn', force=True)
-    RESUME_CHECK_POINT = f"{PROJECT_ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_B_V1_2024_12_20_19_06/checkpoint_epoch_4.pkl"
-    train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH, RESUME_CHECK_POINT)
+    # RESUME_CHECK_POINT = f"{PROJECT_ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_B_V1_2024_12_20_19_06/checkpoint_epoch_4.pkl"
+    train_model(CONFIG_FILE_PATH, PERSON_ACTIVITY_CHECKPOINT_PATH)

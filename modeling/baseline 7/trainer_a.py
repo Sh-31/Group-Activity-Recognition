@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from model import Person_Activity_Temporal_Classifer, person_collate_fn
 
-ROOT = "/kaggle/"
+ROOT = "/kaggle"
 PROJECT_ROOT= "/kaggle/working/Group-Activity-Recognition"
 CONFIG_FILE_PATH = f"{PROJECT_ROOT}/modeling/configs/Baseline B7.yml"
 

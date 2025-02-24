@@ -72,7 +72,7 @@ experiment:
   seed: 31
   version: 1
 model:
-  hidden_size: 128
+  hidden_size: 512
   input_size: 2048
   num_clases_label:
   - r_set
@@ -87,9 +87,10 @@ model:
   num_layers: 1
 training:
   batch_size:
-    train: 32
+    train: 16
     val: 32
-  epochs: 25
-  learning_rate: 0.0002
+  epochs: 35
+  label_smoothing: 0.15
+  learning_rate: 0.0001
   optimizer: AdamW
-  weight_decay: 0.0001
+  weight_decay: 1

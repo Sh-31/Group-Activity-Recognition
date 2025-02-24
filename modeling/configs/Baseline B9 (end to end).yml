@@ -15,11 +15,11 @@ model:
 
 training:
     batch_size: 4
-    learning_rate: 0.00005 # 5e-5
-    epochs: 40
+    learning_rate: 0.000006 # 6e-6
+    epochs: 85
     optimizer: "AdamW"
     weight_decay: 1 
-    label_smoothing: 0.15
+    label_smoothing: 0.00
       
 data:
   dataset_name: "GroupActivityDataset"

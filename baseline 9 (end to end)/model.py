@@ -133,23 +133,6 @@ def collate_fn(batch):
 
     return padded_clips, padded_person_labels, group_labels
 
-def get_sampler_weights(dataset):
-    labels = []
-    for idx in range(len(dataset)):
-        _, person_label, group_label = dataset[idx]
-        labels.append(group_label[-1].argmax().item()) # take one label of the 9 frame 
-    
-    class_counts = torch.bincount(torch.tensor(labels))
-
-    num_samples = len(labels)
-    class_weights = (1.0 / class_counts.float()) 
-    class_weights = class_weights / class_weights.sum()
-    
-    samples_weights = [class_weights[label] for label in labels]
-    samples_weights = torch.DoubleTensor(samples_weights)
-    
-    return samples_weights, class_weights
-
 def eval(args, checkpoint_path):
 
     sys.path.append(os.path.abspath(args.ROOT))
@@ -263,10 +246,9 @@ def eval(args, checkpoint_path):
     return metrics
 
 if __name__ == "__main__":
-
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B9 (end to end).yml"   
-    CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_02_22_10_36/checkpoint_epoch_49.pkl"
+    CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_15_00_32/checkpoint_epoch_35.pkl"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -292,24 +274,24 @@ if __name__ == "__main__":
     # ==================================================
     # Group Activity Baseline 9 eval on testset
     # ==================================================
-    # Accuracy : 93.12%
-    # Average Loss: 0.4360
-    # F1 Score (Weighted): 0.9311
+    # Accuracy : 91.92%
+    # Average Loss: 0.4514
+    # F1 Score (Weighted): 0.9192
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.94      0.86      0.90       192
-    #      r_spike       0.93      0.93      0.93       173
-    #       r-pass       0.89      0.95      0.92       210
-    #   r_winpoint       0.91      0.99      0.95        87
-    #   l_winpoint       0.96      0.94      0.95       102
-    #       l-pass       0.95      0.94      0.94       226
-    #      l-spike       0.96      0.93      0.95       179
-    #        l_set       0.91      0.93      0.92       168
+    #        r_set       0.91      0.86      0.88       192
+    #      r_spike       0.94      0.92      0.93       173
+    #       r-pass       0.89      0.94      0.91       210
+    #   r_winpoint       0.94      0.95      0.95        87
+    #   l_winpoint       0.96      0.97      0.97       102
+    #       l-pass       0.95      0.93      0.94       226
+    #      l-spike       0.90      0.92      0.91       179
+    #        l_set       0.88      0.90      0.89       168
 
-    #     accuracy                           0.93      1337
-    #    macro avg       0.93      0.94      0.93      1337
-    # weighted avg       0.93      0.93      0.93      1337
+    #     accuracy                           0.92      1337
+    #    macro avg       0.92      0.92      0.92      1337
+    # weighted avg       0.92      0.92      0.92      1337
 
     # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 9 (end to end)/outputs/Group_Activity_Baseline_9_eval_on_testset_confusion_matrix.png

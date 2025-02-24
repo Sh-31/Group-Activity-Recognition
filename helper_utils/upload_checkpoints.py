@@ -105,3 +105,10 @@ if __name__ == "__main__":
     #     repo_type=REPO_TYPE,
     #     api_token=TOKEN
     # )
+
+    import kagglehub
+
+    # Download latest version
+    path = kagglehub.dataset_download("ahmedai31/b8-final")
+
+    print("Path to dataset files:", path)

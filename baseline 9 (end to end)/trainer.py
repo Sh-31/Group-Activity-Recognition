@@ -16,11 +16,11 @@ from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from model import Hierarchical_Group_Activity_Classifer, collate_fn, get_sampler_weights
+from model import Hierarchical_Group_Activity_Classifer, collate_fn
 
 ROOT = "/kaggle"
 PROJECT_ROOT = "/kaggle/working/Group-Activity-Recognition"
-CHECK_POINT = "/kaggle/input/group-activity-recognition/pytorch/v1/1/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_15_00_32/checkpoint_epoch_35.pkl"
+# CHECK_POINT = "/kaggle/working/Group-Activity-Recognition/modeling/baseline 9 (end to end)/outputs/Baseline_B9_V1_2025_01_04_10_09/checkpoint_epoch_21.pkl"
 CONFIG_FILE_PATH = f'{PROJECT_ROOT}/modeling/configs/Baseline B9.yml'
 
 sys.path.append(os.path.abspath(PROJECT_ROOT))
@@ -47,7 +47,7 @@ def setup_ddp(rank, world_size):
 def cleanup_ddp():
     dist.destroy_process_group()
 
-def train_one_epoch(model, train_loader, person_criterion, group_criterion, optimizer, scaler, device, epoch, writer, logger, rank):
+def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, epoch, writer, logger, rank):
     model.train()
     total_loss = 0
     correct = 0
@@ -62,9 +62,9 @@ def train_one_epoch(model, train_loader, person_criterion, group_criterion, opti
         
         with autocast(dtype=torch.float16):
             outputs = model(inputs)
-            loss_1 = person_criterion(outputs['person_output'], person_labels)
-            loss_2 = group_criterion(outputs['group_output'], group_labels)
-            loss = loss_2 + (0.60 * loss_1)
+            loss_1 = criterion(outputs['person_output'], person_labels)
+            loss_2 = criterion(outputs['group_output'], group_labels)
+            loss = (0.70 * loss_2) + (0.30 * loss_1)
         
         scaler.scale(loss).backward()
         scaler.step(optimizer)
@@ -138,7 +138,7 @@ def validate_model(model, val_loader, criterion, device, epoch, writer, logger, 
             loss_1 = criterion(outputs['person_output'], person_labels)
             loss_2 = criterion(outputs['group_output'], group_labels)
             
-            loss = loss_2 + (0.60 * loss_1)
+            loss = (0.70 * loss_2) + (0.30 * loss_1)
             
             total_loss += loss.item()
             
@@ -183,6 +183,8 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
         num_layers=config.model['hyper_param']['num_layers']
     ).to(device)
 
+    model = DDP(model, device_ids=[rank])
+
     if config.training['optimizer'] == "AdamW":
         optimizer = optim.AdamW(
             model.parameters(),
@@ -200,42 +202,25 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
     best_val_acc = 0
     
     if checkpoint_path:
-        model, optimizer_old, loaded_config, exp_dir, start_epoch = load_checkpoint(
+        model, optimizer, loaded_config, exp_dir, start_epoch = load_checkpoint(
             checkpoint_path, model, optimizer, device
         )
         
-        if rank == 0:
-            logger = setup_logging(exp_dir) 
-            logger.info(f"Resumed training from epoch {start_epoch}")
-        else:
-            logger = None
-        
+        # model = DDP(model, device_ids=[rank])
+    
+        logger = setup_logging(exp_dir) if rank == 0 else None
     else:
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M')
         exp_dir = os.path.join(
             f"{PROJECT_ROOT}/modeling/baseline 9 (end to end)/{config.experiment['output_dir']}",
             f"{config.experiment['name']}_V{config.experiment['version']}_{timestamp}"
         )
-        
         if rank == 0:
             os.makedirs(exp_dir, exist_ok=True)
             logger = setup_logging(exp_dir)
         else:
             logger = None
     
-    if config.training['optimizer'] == "AdamW":
-        optimizer = optim.AdamW(
-            model.parameters(),
-            lr=config.training['learning_rate'],
-            weight_decay=config.training['weight_decay']
-        )
-    elif config.training['optimizer'] == "SGD":
-        optimizer = optim.SGD(
-            model.parameters(),
-            lr=config.training['learning_rate'],
-            weight_decay=config.training['weight_decay']
-        )
-        
     writer = SummaryWriter(log_dir=os.path.join(exp_dir, 'tensorboard')) if rank == 0 else None
     
     if rank == 0:
@@ -248,8 +233,6 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
             f"weight_decay: {config.training['weight_decay']}")
     
     set_seed(config.experiment['seed'] + rank) # each GPU process has a different but deterministic random seed
-
-    model = DDP(model, device_ids=[rank])
     
     train_transforms = A.Compose([
         A.Resize(224, 224),
@@ -260,12 +243,12 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
             A.GaussNoise(),
             A.MotionBlur(blur_limit=5), 
             A.MedianBlur(blur_limit=5)  
-        ], p=0.55),
+        ], p=0.90),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
             A.RandomRotate90()
-        ], p=0.01),
+        ], p=0.15),
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ToTensorV2()
     ])
@@ -295,13 +278,7 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
     if rank == 0:
         logger.info(f"Training dataset size: {len(train_dataset)}")
         logger.info(f"Validation dataset size: {len(val_dataset)}")
-    samples_weights, class_weights = get_sampler_weights(train_dataset)
-
- 
-    class_weights = class_weights.to(device)
-
-    print(class_weights)
- 
+    
     train_sampler = DistributedSampler(train_dataset)
     val_sampler = DistributedSampler(val_dataset, shuffle=False)
     
@@ -323,11 +300,9 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
         pin_memory=True
     )
     
-    group_criterion = nn.CrossEntropyLoss(weight=class_weights)
-    person_criterion = nn.CrossEntropyLoss(label_smoothing=0.15)
-    criterion = nn.CrossEntropyLoss() # LOSE FOR EVAL
-
+    criterion = nn.CrossEntropyLoss(label_smoothing=config.training['label_smoothing'])
     scaler = GradScaler()
+    
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode='min',
@@ -345,8 +320,8 @@ def train_model_ddp(rank, world_size, config_path, checkpoint_path=None):
         train_sampler.set_epoch(epoch)
       
         train_loss, train_acc = train_one_epoch(
-            model, train_loader, person_criterion, group_criterion, 
-            optimizer, scaler, device, epoch, writer, logger, rank
+            model, train_loader, criterion, optimizer, scaler, device, epoch,
+            writer, logger, rank
         )
         
         val_loss, val_acc, val_f1_score = validate_model(

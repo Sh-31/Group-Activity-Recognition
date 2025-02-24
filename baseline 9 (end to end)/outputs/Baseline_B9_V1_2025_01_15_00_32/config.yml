@@ -1,7 +1,7 @@
 !!python/object:helper_utils.helper.Config
 data:
   annot_path: input/group-activity-recognition-volleyball/annot_all.pkl
-  data_dir: /kaggle/input/group-activity-recognition-volleyball/annot_all.pkl
+  data_dir: /kaggle/input/group-activity-recognition-volleyball
   dataset_name: GroupActivityDataset
   video_splits:
     test:
@@ -64,19 +64,19 @@ data:
     - 51
   videos_path: input/group-activity-recognition-volleyball/videos
 experiment:
-  description: Phase two train group activity temporal classifer
-  name: Baseline_B8_Step_B
+  description: In previous  baselines, person activity and group activity losses were
+    handled independently, resulting in a two-stage model. Baseline 9 combines these
+    processes into a unified, end-to-end training pipeline. This approach allows for
+    the simultaneous optimization of both person-level and group-level activity classification
+    using a shared gradient flow.
+  name: Baseline_B9
   output_dir: outputs
   seed: 31
   version: 1
 model:
   hyper_param:
-    group_activity:
-      hidden_size: 512
-      num_layers: 2
-    person_activity:
-      hidden_size: 512
-      num_layers: 1
+    hidden_size: 512
+    num_layers: 2
   num_clases_label:
     group_activity:
     - r_set
@@ -101,17 +101,9 @@ model:
     group_activity: 8
     person_activity: 9
 training:
-  group_activity:
-    batch_size: 8
-    epochs: 90
-    label_smoothing: 0.0
-    learning_rate: 6.0e-06
-    optimizer: AdamW
-    weight_decay: 1
-  person_activity:
-    batch_size: 2
-    epochs: 15
-    label_smoothing: 0.1
-    learning_rate: 0.0002
-    optimizer: AdamW
-    weight_decay: 0.1
+  batch_size: 4
+  epochs: 40
+  label_smoothing: 0.15
+  learning_rate: 5.0e-05
+  optimizer: AdamW
+  weight_decay: 1

@@ -29,12 +29,12 @@ training:
     
   group_activity:
     batch_size: 8
-    learning_rate: 0.0001 # 1e-4
-    epochs: 25
-    optimizer: "SGD"
-    momentum: 0.9
+    learning_rate: 0.0004 # 4e-4
+    epochs: 40
+    optimizer: "AdamW"
+    # momentum: 0.9
     weight_decay: 1
-    label_smoothing: 0.15
+    label_smoothing: 0.10
     
 data:
   dataset_name: "GroupActivityDataset"

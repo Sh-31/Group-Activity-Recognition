@@ -177,12 +177,12 @@ For further information about dataset, you can check out the paper author's repo
 |--------------|--------------|--------------|
 | Baseline 1   | 72.66%       | 72.63%       |
 | Baseline 3   | 80.25%       | 80.24%       |
-| Baseline 4   | 73.45%       | 73.27%       |
+| Baseline 4   | 76.59%       | 76.67%       |
 | Baseline 5   | 77.04%       | 77.07%       |
 | Baseline 6   | 84.52%       | 83.99%       |
-| Baseline 7   | 88.71%       | 88.77%       |
-| Baseline 8   | 91.40%       | 91.39%       |
-| Baseline 9   | 91.92%       | 91.92%       |
+| Baseline 7   | 89.15%       | 89.14%       |
+| Baseline 8   | 92.30%       | 92.29%       |
+| Baseline 9   | 93.12%       | 93.11%       |
 
 ---
 

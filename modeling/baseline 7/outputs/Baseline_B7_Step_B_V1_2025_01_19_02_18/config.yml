@@ -64,7 +64,7 @@ data:
     - 51
   videos_path: input/group-activity-recognition-volleyball/videos
 experiment:
-  description: Phase one train person activity temporal classifer
+  description: Phase two train group activity temporal classifer
   name: Baseline_B7_Step_B
   output_dir: outputs
   seed: 31
@@ -103,8 +103,9 @@ model:
 training:
   group_activity:
     batch_size: 8
-    epochs: 25
-    learning_rate: 0.0001
+    epochs: 40
+    label_smoothing: 0.1
+    learning_rate: 0.0004
     optimizer: AdamW
     weight_decay: 1
   person_activity:

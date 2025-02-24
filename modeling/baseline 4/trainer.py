@@ -13,7 +13,7 @@ from albumentations.pytorch import ToTensorV2
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from model import Group_Activity_Temporal_Classifer , collate_fn
+from model import Group_Activity_Temporal_Classifer, collate_fn, FocalLoss
 
 ROOT = "/kaggle/"
 PROJECT_ROOT= "/kaggle/working/Group-Activity-Recognition"
@@ -59,7 +59,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer, scaler, device, e
         total += targets.size(0)
         correct += predicted.eq(target_class).sum().item()
         
-        if batch_idx % 10 == 0:
+        if batch_idx % 10 == 0 and batch_idx != 0:
             step = epoch * len(train_loader) + batch_idx
             writer.add_scalar('Training/BatchLoss', loss.item(), step)
             writer.add_scalar('Training/BatchAccuracy', 100.*correct/total, step)
@@ -148,16 +148,16 @@ def train_model(config_path):
             A.GaussianBlur(blur_limit=(3, 7)),
             A.ColorJitter(brightness=0.2),
             A.RandomBrightnessContrast(),
-            A.GaussNoise()
-        ], p=0.5),
+            A.GaussNoise(),
+            A.MotionBlur(blur_limit=5), 
+            A.MedianBlur(blur_limit=5)  
+        ], p=0.95),
         A.OneOf([
             A.HorizontalFlip(),
             A.VerticalFlip(),
-        ], p=0.05),
-        A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]
-        ),
+            A.RandomRotate90()
+        ], p=0.10),
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ToTensorV2()
     ])
     
@@ -233,9 +233,20 @@ def train_model(config_path):
             weight_decay=config.training['weight_decay']
         )     
     
-    criterion = nn.CrossEntropyLoss()
-    scaler = GradScaler()
+    total_samples = len(train_dataset)
+    labels = [label.argmax().item() for batch in train_loader for label in batch[1]]
+    class_counts = torch.bincount(torch.tensor(labels))
+    class_weights = total_samples / (len(class_counts) * class_counts)
+    class_weights = class_weights / class_weights.sum()  
+
+    class_weights = class_weights.to(device)
     
+    criterion = nn.CrossEntropyLoss(
+        label_smoothing=config.training['label_smoothing'],
+        weight=class_weights
+    )
+    
+    scaler = GradScaler()
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode='min',
@@ -244,6 +255,7 @@ def train_model(config_path):
     )
     
     config_save_path = os.path.join(exp_dir, 'config.yml')
+
     with open(config_save_path, 'w') as f:
         yaml.dump(config, f)
     logger.info(f"Configuration saved to: {config_save_path}")
@@ -256,7 +268,9 @@ def train_model(config_path):
             model, train_loader, criterion, optimizer, scaler, device, epoch, writer, logger
         )
         
-        val_loss, val_acc = validate_model(model, val_loader, criterion, device, epoch, writer, logger, config.model['num_clases_label'])
+        val_loss, val_acc = validate_model(
+            model, val_loader, criterion, device, epoch, writer, logger, config.model['num_clases_label']
+        )
         scheduler.step(val_loss)
         
         current_lr = optimizer.param_groups[0]['lr']

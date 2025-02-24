@@ -88,11 +88,10 @@ class Group_Activity_Temporal_Classifer(nn.Module):
             nn.LayerNorm(512),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(512, 128),
-            nn.LayerNorm(128),
+            nn.Linear(512, 256),
+            nn.LayerNorm(256),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, num_classes)
+            nn.Linear(256, num_classes)
         )
     
     def forward(self, x):
@@ -174,7 +173,27 @@ def group_collate_fn(batch):
     
     return padded_clips, labels
 
-def eval(args, person_activity_checkpoint, checkpoint_path):
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=2.0, alpha=None):
+        super().__init__()
+        self.gamma = gamma
+        self.alpha = None 
+        
+        if alpha is not None:
+            self.alpha = alpha.clone().detach() if isinstance(alpha, torch.Tensor) else torch.tensor(alpha).clone().detach()
+            self.alpha.requires_grad_(True)
+
+    def forward(self, inputs, targets):
+        ce_loss = nn.CrossEntropyLoss(reduction='none')(inputs, targets.argmax(1))
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma) * ce_loss
+        
+        if self.alpha is not None:
+            focal_loss = self.alpha[targets.argmax(1)] * focal_loss
+            
+        return focal_loss.mean()
+
+def eval(args, checkpoint_path):
 
     sys.path.append(os.path.abspath(args.ROOT))
     from helper_utils import load_config, load_checkpoint
@@ -185,19 +204,12 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    person_activity_cls = Person_Activity_Temporal_Classifer(
+    person_act_cls = Person_Activity_Temporal_Classifer(
         num_classes=config.model['num_classes']['person_activity'],
         hidden_size=config.model['hyper_param']['person_activity']['hidden_size'],
         num_layers=config.model['hyper_param']['person_activity']['num_layers']
     )
    
-    person_activity_cls = load_checkpoint(
-        model=person_activity_cls, 
-        checkpoint_path=person_activity_checkpoint, 
-        device=device, 
-        optimizer=None
-    )
-    
     model = Group_Activity_Temporal_Classifer(
         person_feature_extraction=person_act_cls, 
         num_classes=config.model['num_classes']['group_activity'],
@@ -231,7 +243,7 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=10,
+        batch_size=8,
         collate_fn=group_collate_fn,
         shuffle=True,
         num_workers=4,
@@ -250,8 +262,7 @@ def eval(args, person_activity_checkpoint, checkpoint_path):
 if __name__ == "__main__":
     ROOT = "/teamspace/studios/this_studio/Group-Activity-Recognition" 
     MODEL_CONFIG = f"{ROOT}/modeling/configs/Baseline B7.yml"    
-    PERSON_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_A_V1_2024_12_19_18_18/checkpoint_epoch_9.pkl"
-    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_B_V1_2024_12_20_19_06/checkpoint_epoch_21.pkl"
+    GROUP_ACTIVITY_CHECKPOINT_PATH = f"{ROOT}/modeling/baseline 7/outputs/Baseline_B7_Step_B_V1_2025_01_19_02_18/checkpoint_epoch_16.pkl"
    
     parser = argparse.ArgumentParser()
     parser.add_argument("--ROOT", type=str, default=ROOT,
@@ -279,28 +290,28 @@ if __name__ == "__main__":
     )
 
     summary(model)
-    eval(args, PERSON_ACTIVITY_CHECKPOINT_PATH, GROUP_ACTIVITY_CHECKPOINT_PATH)
+    eval(args, GROUP_ACTIVITY_CHECKPOINT_PATH)
     # ==================================================
     # Group Activity Baseline 7 eval on testset
     # ==================================================
-    # Accuracy : 88.71%
-    # Average Loss: 0.4399
-    # F1 Score (Weighted): 0.8877
+    # Accuracy : 89.15%
+    # Average Loss: 0.4524
+    # F1 Score (Weighted): 0.8914
 
     # Classification Report:
     #               precision    recall  f1-score   support
 
-    #        r_set       0.95      0.85      0.90       192
-    #      r_spike       0.95      0.91      0.93       173
-    #       r-pass       0.84      0.96      0.90       210
-    #   r_winpoint       0.65      0.76      0.70        87
-    #   l_winpoint       0.76      0.70      0.73       102
-    #       l-pass       0.94      0.92      0.93       226
-    #      l-spike       0.93      0.93      0.93       179
-    #        l_set       0.93      0.91      0.92       168
+    #        r_set       0.95      0.88      0.91       192
+    #      r_spike       0.96      0.92      0.94       173
+    #       r-pass       0.90      0.96      0.93       210
+    #   r_winpoint       0.68      0.60      0.64        87
+    #   l_winpoint       0.69      0.80      0.74       102
+    #       l-pass       0.91      0.95      0.93       226
+    #      l-spike       0.92      0.93      0.93       179
+    #        l_set       0.93      0.88      0.90       168
 
     #     accuracy                           0.89      1337
-    #    macro avg       0.87      0.87      0.87      1337
+    #    macro avg       0.87      0.86      0.87      1337
     # weighted avg       0.89      0.89      0.89      1337
 
     # Confusion matrix saved to /teamspace/studios/this_studio/Group-Activity-Recognition/modeling/baseline 7/outputs/Group_Activity_Baseline_7_eval_on_testset_confusion_matrix.png
